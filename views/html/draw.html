@@ -92,7 +92,7 @@
                         </h1>
                         <div class="contentDiv">
                             <div id="iframeWrap">
-                                <iframe src="drawframe.html" id="drawFrame" style="z-index:1"></iframe>
+                                <iframe src="" id="drawFrame" style="z-index:1"></iframe>
                                 <iframe src="" id="twitchFrame" style="z-index:0"></iframe>
                             </div>
                             <div id="controls">
@@ -129,6 +129,7 @@
             $(function ()
             {
                 $('#twitchFrame').attr('src', 'http://player.twitch.tv/?channel=' + getUrlParameter('channel'));
+                $('#drawFrame').attr('src', 'http://www.bovinitydivinity.com/draw/' + getUrlParameter('channel') + '/drawframe.html');
             });
         </script>
 </body>

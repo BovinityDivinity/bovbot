@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="">
     <meta name="author" content="">
-    <title>BovBot Admin Site</title>
+    <title>ELC Raffle Information</title>
     <!-- Bootstrap Core CSS -->
     <link href="css/bootstrap.min.css" rel="stylesheet">
     <!-- Custom CSS -->
@@ -32,21 +32,25 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand" href="/">BovBot</a>
+                <a class="navbar-brand" href="http://www.bovinitydivinity.com/raffle">ELC Raffle Home</a>
             </div>
             <!-- Top Menu Items -->
-            <ul class="nav navbar-right top-nav">
-                <li class="dropdown">
-                    <a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="fa fa-user"></i> <%= channel %> <b class="caret"></b></a>
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a href="logout"><i class="fa fa-fw fa-power-off"></i> Log Out</a>
-                        </li>
-                    </ul>
-                </li>
+            <ul class="nav navbar-right top-nav">                
             </ul>
             <!-- Sidebar Menu Items - These collapse to the responsive navigation menu on small screens -->
-            <% include html/include/sidebar %>
+				<div class="collapse navbar-collapse navbar-ex1-collapse">
+                <ul class="nav navbar-nav side-nav">
+                    <li>
+                        <a href="/raffle"><i class="fa fa-fw fa-dashboard"></i>Home</a>
+                    </li>
+                    <li>
+                        <a href="/rafflestats"><i class="fa fa-fw fa-edit"></i> Statistics</a>
+                    </li>   
+                    <li>
+                        <a href="/rafflewinner"><i class="fa fa-fw fa-edit"></i> Winner Selection</a>
+                    </li>                  
+                </ul>
+            </div>                    
             <!-- /.navbar-collapse -->
         </nav>
         <div id="page-wrapper">
@@ -55,36 +59,26 @@
                 <div class="row">
                     <div class="col-lg-12">
                         <h1 class="page-header">
-                            Viewers
-                        </h1>
-                        <ol class="breadcrumb">
-                            <li>
-                                <i class="fa fa-dashboard"></i>  <a href="/dashboard">Dashboard</a>
-                            </li>
-                            <li class="active">
-                                <i class="fa fa-file"></i> Viewers
-                            </li>
-
-                            <br />
+                            ELC Patron Rewards Raffle
+                        </h1>                      
                             <div class="contentDiv">
                                 <div class="viewerDiv">
-                                    <br />List of all Viewers Seen in channel: <strong><%= channel %></strong><br />
                                     <center>
                                         <br />
-                                        <table class="table table-bordered table-hover table-striped">
-                                            <tr><th>Viewer Name</th><th>Credits</th></tr>
-                                            <% for(var i=0; i
-                                            <viewers.length;i++) { %>
+                                        <table class="table table-bordered table-hover table-striped">                                            
+											<tr><th>Patron Info</th><th>Card Number</th><th>Tickets</th></tr>
+                                            <% for(var i=0; i <patrons.length;i++) { %>
                                                 <tr>
-                                                    <td><%= viewers[i]['viewer'] %></td>
-                                                    <td><%= viewers[i]['credits'] %></td>
+                                                    <td><%= patrons[i]['patron'] %></td>
+													<td><%= patrons[i]['cardnumber'] %></td>
+													<td><%= patrons[i]['entries'] %> </td>
                                                 </tr>
                                                 <% } %>
                                         </table>
                                     </center>
                                 </div>
                             </div>
-                        </ol>
+
                     </div>
                 </div>
                 <!-- /.row -->

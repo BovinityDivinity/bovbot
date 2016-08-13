@@ -1,8 +1,6 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
-
 <head>
-
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -27,16 +25,11 @@
         <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
     <![endif]-->
     <script>
-        var sessionName = '<%= channel %>';
-        if (!sessionName)
-            document.location.assign('/');
+
     </script>
 </head>
-
 <body>
-
     <div id="wrapper">
-
         <!-- Navigation -->
         <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
             <!-- Brand and toggle get grouped for better mobile display -->
@@ -64,16 +57,13 @@
             <% include html/include/sidebar %>
             <!-- /.navbar-collapse -->
         </nav>
-
         <div id="page-wrapper">
-
             <div class="container-fluid">
-
                 <!-- Page Heading -->
                 <div class="row">
                     <div class="col-lg-12">
                         <h1 class="page-header">
-                            Functions                            
+                            Functions
                         </h1>
                         <ol class="breadcrumb">
                             <li>
@@ -82,29 +72,72 @@
                             <li class="active">
                                 <i class="fa fa-file"></i> Functions
                             </li>
-								<p>
-								<br/>Various functions (Link Protection, Word Blacklist, etc) will go here soon.
-								</p>
                         </ol>
+                        <div id="contentDiv">
+                            <table class="table table-bordered table-hover table-striped">
+                                <tr><th colspan="2">Chat Moderation Functions</th></tr>
+                                <tr><th>Function</th><th>Enabled</th></tr>
+                                <tr><td>Enable Link Protection</td><td>NYI</td></tr>
+                                <tr><td>Allow "regular" viewers to post links</td><td>NYI</td></tr>
+                            </table>
+                            <table class="table table-bordered table-hover table-striped">
+                                <tr><th colspan="2">Game-Related Functions</th></tr>
+                                <tr><th>Function</th><th>Enabled</th></tr>
+                                <tr><td>Allow usage of Hearthstone related commands (!hs)</td><td><input type="checkbox" id="hsCheck" /></td></tr>
+                                <tr><td>Allow usage of CS:GO related commands (!skin)</td><td><input type="checkbox" id="csCheck" /></td></tr>
+                                <tr><td>Allow usage of League of Legends related commands (!champion)</td><td><input type="checkbox" id="lolCheck" /></td></tr>
+                            </table>
+                            <button class="btn btn-lg btn-primary" id="gameSubmit" onclick="submitFunctions()">Save Changes</button>
+                        </div>
                     </div>
+                    <!-- /.row -->
                 </div>
-                <!-- /.row -->
-
+                <!-- /.container-fluid -->
             </div>
-            <!-- /.container-fluid -->
-
+            <!-- /#page-wrapper -->
         </div>
-        <!-- /#page-wrapper -->
+        <!-- /#wrapper -->
+        <!-- jQuery -->
+        <script src="js/jquery.js"></script>
+        <!-- Bootstrap Core JavaScript -->
+        <script src="js/bootstrap.min.js"></script>
+        <script>
+            $(function ()
+            {
+                    if ('<%= hearthstone %>' == 'enable')
+                        document.getElementById('hsCheck').checked = 'true';
+                    if ('<%= csgo %>' == 'enable')
+                        document.getElementById('csCheck').checked = 'true';
+                    if ('<%= league %>' == 'enable')
+                        document.getElementById('lolCheck').checked = 'true';
+            });
 
-    </div>
-    <!-- /#wrapper -->
+            function submitFunctions()
+            {
+                var hsStatus;
+                var csStatus;
+                var lolStatus;
+                if (document.getElementById('hsCheck').checked)
+                    hsStatus = 'enable';
+                else
+                    hsStatus = 'disable';
 
-    <!-- jQuery -->
-    <script src="js/jquery.js"></script>
+                if (document.getElementById('csCheck').checked)
+                    csStatus = 'enable';
+                else
+                    csStatus = 'disable';
 
-    <!-- Bootstrap Core JavaScript -->
-    <script src="js/bootstrap.min.js"></script>
+                if (document.getElementById('lolCheck').checked)
+                    lolStatus = 'enable';
+                else
+                    lolStatus = 'disable';
 
+                $.post("http://www.bovinitydivinity.com", { clientHash: location.hash, op: 'functions', hearthstone: hsStatus, csgo: csStatus, league: lolStatus }, function (data)
+                {
+                    if (data == 'done')
+                        location.reload();
+                });
+            }
+        </script>
 </body>
-
 </html>
