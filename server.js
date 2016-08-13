@@ -2,17 +2,17 @@
 TODO: Finish website control panel - Add command controls, statistics, etc.
 TODO: Link protection.
 TODO: Extra content: Song requests/Games/Giveaways?
-TODO: Move Commands and Timers to new DB system. (Maybe)
-TODO: Error checking on variables.
 */
 var auth = require('./auth');
 var request = require('request');
 var DB = require('mysql');
 var irc = require('irc');
+var previousEntrant = 0;
+var consecutiveEntries = 1;
 var connection = DB.createPool({
     connectionLimit: 20,
     host: auth.dbaddress,
-    user: auth.dbname,
+    user: auth.dbuser,
     password: auth.password,
     database: auth.dbname
 });
@@ -23,36 +23,35 @@ var config = {
     nick: 'bovbot',
     password: auth.oauth
 };
-var binnieConfig = {
-    port: 6667,
-    server: 'irc.twitch.tv',
-    nick: 'binnietv',
-    password: auth.binnieoauth
-};
 var bot = new irc.Client(config.server, config.nick, { password: config.password, floodProtection: true, floodProtectionDelay: 1000, autoConnect: false });
-var binnie = new irc.Client(binnieConfig.server, binnieConfig.nick, { password: binnieConfig.password, floodProtection: true, floodProtectionDelay: 1000, autoConnect: false });
 function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 bot.connect(function () {
     console.log('Logging in: irc.twitch.tv');
     bot.send('CAP REQ', 'twitch.tv/membership');
-    //bot.send('CAP REQ', 'twitch.tv/tags');
     bot.send('CAP REQ', 'twitch.tv/commands');
     bot.join('#bovbot');
     bot.join('#binnietv');
-    bot.join('#bovinity');
-});
-binnie.connect(function () {
-    console.log('Logging BinnieTV client in.');
+    bot.join('#roofonfire');
 });
 //Bot event Listeners
 bot.addListener('error', function (message) {
     console.error('ERROR: %s: %s', message.command, message.args.join(' '));
 });
 bot.addListener('join', function (channel, nick, message) {
-    if (nick == 'bovbot')
+    if (nick == 'bovbot') {
         bot.say(channel, '.mods');
+        connection.query('SHOW TABLES LIKE "' + channel.substring(1) + '_commands"', function (err, rows, fields) {
+            if (err)
+                throw err;
+            if (!rows[0]) {
+                connection.query('CREATE TABLE ' + channel.substring(1) + '_commands (command VARCHAR(255), response VARCHAR(255))', function (err, rows, fields) {
+                    console.log('Created new Commands table: ' + channel);
+                });
+            }
+        });
+    }
 });
 bot.addListener('notice', function (nick, to, text, message) {
     console.log(message);
@@ -129,6 +128,18 @@ bot.addListener('notice', function (nick, to, text, message) {
     }
 });
 bot.addListener('message', function (from, to, message) {
+    if (message.match(/[^\w\s\!\?\.]{6,}/g)) {
+        bot.say(to, '.timeout ' + from + ' 300');
+        var modTable = to.substring(1) + '_moderators';
+        connection.query('SELECT moderator FROM ' + modTable + ' WHERE moderator = "' + from + '"', function (err, rows, fields) {
+            if (!rows[0]) {
+                console.log('ASCII Spam Detected: Not Moderator. Message: ' + message);
+                bot.say(to, 'Timed out ' + from + ' for ascii spam (5 min).');
+            }
+            else {
+            }
+        });
+    }
     if (message.match(/^!/)) {
         if (message == '!uptime') {
             request('https://api.twitch.tv/kraken/streams/' + to.substring(1), function (error, response, body) {
@@ -155,31 +166,148 @@ bot.addListener('message', function (from, to, message) {
                 }
             });
         }
-        else if (message.match(/^!mod /)) {
-            if (from == 'bovinity') {
-                var parsedRequest = message.split(' ');
-                var newMod = parsedRequest[1];
-                binnie.say(to, '.mod ' + newMod);
-                bot.say(to, 'Adding moderator: ' + newMod);
+        else if (message.match(/^!8ball/i)) {
+            var parsedRequest = message.split(' ');
+            if (parsedRequest[1]) {
+                var index = getRandomInt(0, 19);
+                var answers = ['It is certain.', 'It is decidedly so.', 'Without a doubt.', 'Yes, definitely.', 'You may rely on it.', 'As I see it, yes.', 'Most likely.',
+                    'Outlook good.', 'Yes.', 'Signs point to yes.', 'Reply hazy try again.', 'Ask again later.', 'Better not tell you now.', 'Cannot predict now.',
+                    'Concentrate and ask again.', 'Don\'t count on it.', 'My reply is no.', 'My sources say no.', 'Outlook not so good.', 'Very doubtful.'];
+                bot.say(to, from + ': ' + answers[index]);
             }
-            else
-                bot.say(to, 'Haha, ' + from + ', no.');
-        }
-        else if (message.match(/^!unmod /)) {
-            if (from == 'bovinity') {
-                var parsedRequest = message.split(' ');
-                var newMod = parsedRequest[1];
-                binnie.say(to, '.unmod ' + newMod);
-                bot.say(to, 'Removing moderator: ' + newMod);
+            else {
+                bot.say(to, 'You didn\'t ask a question, dummy.');
             }
-            else
-                bot.say(to, 'Haha, ' + from + ', no.');
         }
-        else if (message == "!banplz") {
-            if (from == "bovinity")
-                bot.say(to, 'Nah, Bov. You cool.');
-            else
-                binnie.say(to, ".ban " + from);
+        else if (message.match(/^!hs/i)) {
+            var parsedRequest = message.slice(4);
+            parsedRequest = parsedRequest.toLowerCase();
+            var apiURL = 'https://omgvamp-hearthstone-v1.p.mashape.com/cards/search/' + parsedRequest + '?mashape-key=Ffd1pcNXiNmshk5CMzxO8ZTuOjIbp1lT552jsncraLnadOWmmh&collectible=1';
+            request(apiURL, function (error, response, body) {
+                if (!error && response.statusCode == 200) {
+                    var output = JSON.parse(body);
+                    if (!output[0]['playerClass']) {
+                        output[0]['playerClass'] = 'Neutral';
+                    }
+                    if (output[0]['text']) {
+                        output[0]['text'] = output[0]['text'].replace(/\<b\>/g, '');
+                        output[0]['text'] = output[0]['text'].replace(/\<\/b\>/g, '');
+                        if (output[0]['type'] == 'Minion') {
+                            bot.say(to, "Card Name: " + output[0]['name'] + ", Cost: (" + output[0]['cost'] + "), Class: " + output[0]['playerClass'] + ", Text: " + output[0]['text'] +
+                                ", Attack: " + output[0]['attack'] + ", Health: " + output[0]['health']);
+                        }
+                        else {
+                            bot.say(to, "Card Name: " + output[0]['name'] + ", Cost: (" + output[0]['cost'] + "), Class: " + output[0]['playerClass'] + ", Text: " + output[0]['text']);
+                        }
+                    }
+                    else {
+                        if (output[0]['type'] == 'Minion') {
+                            bot.say(to, "Card Name: " + output[0]['name'] + ", Cost: (" + output[0]['cost'] + "), Class: " + output[0]['playerClass'] + ", Attack: " + output[0]['attack'] + ", Health: " + output[0]['health']);
+                        }
+                        else {
+                            bot.say(to, "Card Name: " + output[0]['name'] + ", Cost: (" + output[0]['cost'] + "), Class: " + output[0]['playerClass']);
+                        }
+                    }
+                }
+                else {
+                    var output = JSON.parse(body);
+                    bot.say(to, 'Error retrieving data from API: ' + output['message']);
+                }
+            });
+        }
+        else if (message.match(/^!skin/i)) {
+            var parsedRequest = message.slice(6);
+            parsedRequest = parsedRequest.replace('StatTrak', 'StatTrak%E2%84%A2');
+            parsedRequest = parsedRequest.replace('ST', 'StatTrak%E2%84%A2');
+            parsedRequest = parsedRequest.replace('Flip Knife', '%E2%98%85 Flip Knife');
+            parsedRequest = parsedRequest.replace('Karambit', '%E2%98%85 Karambit');
+            parsedRequest = parsedRequest.replace('Butterfly Knife', '%E2%98%85 Butterfly Knife');
+            parsedRequest = parsedRequest.replace('Falchion Knife', '%E2%98%85 Falchion Knife');
+            parsedRequest = parsedRequest.replace('Gut Knife', '%E2%98%85 Gut Knife');
+            parsedRequest = parsedRequest.replace('Huntsman Knife', '%E2%98%85 Huntsman Knife');
+            parsedRequest = parsedRequest.replace('Shadow Daggers', '%E2%98%85 Shadow Daggers');
+            parsedRequest = parsedRequest.replace('Bayonet', '%E2%98%85 Bayonet');
+            parsedRequest = parsedRequest.replace('(FN)', '(Factory New)');
+            parsedRequest = parsedRequest.replace('(WW)', '(Well-Worn)');
+            parsedRequest = parsedRequest.replace('(FT)', '(Field-Tested)');
+            parsedRequest = parsedRequest.replace('(BS)', '(Battle-Scarred)');
+            parsedRequest = parsedRequest.replace('(MW)', '(Minimal Wear)');
+            var apiURL = 'http://steamcommunity.com/market/priceoverview/?currency=1&appid=730&market_hash_name=' + parsedRequest;
+            request(apiURL, function (error, response, body) {
+                if (!error && response.statusCode == 200) {
+                    var output = JSON.parse(body);
+                    bot.say(to, 'Price (Lowest): ' + output['lowest_price'] + '. Price (Median): ' + output['median_price']);
+                }
+                else
+                    bot.say(to, 'Steam API Returned an Error. Bad skin name?');
+            });
+        }
+        else if (message.match(/^!champion/i)) {
+            var parsedRequest = message.split(' ');
+            var championName = parsedRequest[1];
+            var spellID = parsedRequest[2];
+            var champID = 0;
+            var botOutput = '';
+            var hotkey;
+            var hotkeyArray = ['Q', 'W', 'E', 'R', 'Passive'];
+            var apiURL = 'https://na.api.pvp.net/api/lol/static-data/na/v1.2/champion?api_key=4c8b1781-16ed-47cf-a8e9-34834c381fa9';
+            request(apiURL, function (error, response, body) {
+                if (!error && response.statusCode == 200) {
+                    var output = JSON.parse(body);
+                    if (output['data'][championName]) {
+                        champID = output['data'][championName]['id'];
+                        apiURL = 'https://na.api.pvp.net/api/lol/static-data/na/v1.2/champion/' + champID + '?api_key=4c8b1781-16ed-47cf-a8e9-34834c381fa9&champData=all';
+                        if (!spellID) {
+                            request(apiURL, function (error, response, body) {
+                                if (!error && response.statusCode == 200) {
+                                    output = JSON.parse(body);
+                                    bot.say(to, championName + ": " + output['tags']);
+                                    for (var i = 0; i <= 5; i++) {
+                                        if (i == 5)
+                                            botOutput += "(Passive): " + "'" + output['passive']['name'] + "'";
+                                        else {
+                                            if (output['spells'][i]) {
+                                                botOutput += '(' + hotkeyArray[i] + "): '" + output['spells'][i]['name'] + "'" + ' ';
+                                            }
+                                        }
+                                    }
+                                    bot.say(to, botOutput);
+                                }
+                            });
+                        }
+                        else {
+                            request(apiURL, function (error, response, body) {
+                                if (!error && response.statusCode == 200) {
+                                    output = JSON.parse(body);
+                                    if (spellID == 'Q')
+                                        spellID = 0;
+                                    else if (spellID == 'W')
+                                        spellID = 1;
+                                    else if (spellID == 'E')
+                                        spellID = 2;
+                                    else if (spellID == 'R')
+                                        spellID = 3;
+                                    if (spellID == 'Passive') {
+                                        botOutput = output['passive']['name'] + ": " + output['passive']['sanitizedDescription'];
+                                    }
+                                    else {
+                                        if (output['spells'][spellID]) {
+                                            botOutput = output['spells'][spellID]['name'] + ': ' + output['spells'][spellID]['sanitizedDescription'];
+                                        }
+                                        else {
+                                            bot.say(to, 'API returned an error. Bad Champion/Spell name?');
+                                        }
+                                    }
+                                    bot.say(to, botOutput);
+                                }
+                            });
+                        }
+                    }
+                    else {
+                        bot.say(to, 'API returned an error. Bad Champion/Spell name?');
+                    }
+                }
+            });
         }
         else if (message == '!modcheck') {
             if (from == 'bovinity') {
@@ -190,12 +318,19 @@ bot.addListener('message', function (from, to, message) {
         }
         else if (message == '!join') {
             if (to == "#bovbot") {
-                console.log('Join request for channel: ' + from);
-                bot.join('#' + from, function () { });
+                if (from == 'bovinity') {
+                    var parsedMessage = message.split(' ');
+                    bot.join('#' + parsedMessage[1], function () { });
+                }
+                else {
+                    console.log('Join request for channel: ' + from);
+                    bot.join('#' + from, function () { });
+                }
             }
         }
         else if (message.match(/^!addcom /)) {
             var modTable = to.substring(1) + '_moderators';
+            var commandsTable = to.substring(1) + '_commands';
             connection.query('SELECT moderator FROM ' + modTable + ' WHERE moderator = "' + from + '"', function (err, rows, fields) {
                 if (rows[0]) {
                     var parsedRequest = message.split(' ');
@@ -204,19 +339,17 @@ bot.addListener('message', function (from, to, message) {
                     if (!newCommand.match(/^!/) || !newResponse)
                         bot.say(to, 'Invalid command format. Must begin with ! and contain a suitable response.');
                     else {
-                        connection.query('SELECT command FROM commands WHERE command = "' + newCommand + '" AND channel = "' + to.substring(1) + '" LIMIT 1', function (err, rows, fields) {
+                        connection.query('SELECT command FROM ' + commandsTable + ' WHERE command = "' + newCommand + '" LIMIT 1', function (err, rows, fields) {
                             if (err)
                                 throw err;
                             if (rows[0])
                                 bot.say(to, 'Command ' + newCommand + ' already exists, ignoring.');
                             else
-                                connection.query('INSERT INTO commands (command, response, channel) VALUES ("' + newCommand + '","' + newResponse + '","' + to.substring(1) + '")', function (err, rows, fields) {
+                                connection.query('INSERT INTO ' + commandsTable + ' (command, response) VALUES ("' + newCommand + '","' + newResponse + '")', function (err, rows, fields) {
                                     if (err)
                                         throw err;
                                     bot.say(to, 'Command ' + newCommand + ' added.');
-                                    connection.release;
                                 });
-                            connection.release;
                         });
                     }
                 }
@@ -226,24 +359,23 @@ bot.addListener('message', function (from, to, message) {
         }
         else if (message.match(/^!delcom /)) {
             var modTable = to.substring(1) + '_moderators';
+            var commandsTable = to.substring(1) + '_commands';
             connection.query('SELECT moderator FROM ' + modTable + ' WHERE moderator = "' + from + '"', function (err, rows, fields) {
                 if (rows[0]) {
                     var parsedRequest = message.split(' ');
                     var deletedCommand = parsedRequest[1];
-                    connection.query('SELECT command FROM commands WHERE command = "' + deletedCommand + '" AND channel = "' + to.substring(1) + '" LIMIT 1', function (err, rows, fields) {
+                    connection.query('SELECT command FROM ' + commandsTable + ' WHERE command = "' + deletedCommand + '" LIMIT 1', function (err, rows, fields) {
                         if (err)
                             throw err;
                         if (rows[0])
-                            connection.query('DELETE FROM commands WHERE command = "' + deletedCommand + '" AND channel = "' + to.substring(1) + '" LIMIT 1', function (err, rows, fields) {
+                            connection.query('DELETE FROM ' + commandsTable + ' WHERE command = "' + deletedCommand + '" LIMIT 1', function (err, rows, fields) {
                                 if (err)
                                     throw err;
                                 else
                                     bot.say(to, 'Deleting command ' + deletedCommand + '.');
-                                connection.release;
                             });
                         else
                             bot.say(to, 'Command ' + deletedCommand + ' not found.');
-                        connection.release;
                     });
                 }
                 else
@@ -252,6 +384,7 @@ bot.addListener('message', function (from, to, message) {
         }
         else if (message.match(/^!editcom /)) {
             var modTable = to.substring(1) + '_moderators';
+            var commandsTable = to.substring(1) + '_commands';
             connection.query('SELECT moderator FROM ' + modTable + ' WHERE moderator = "' + from + '"', function (err, rows, fields) {
                 if (rows[0]) {
                     var parsedRequest = message.split(' ');
@@ -261,20 +394,18 @@ bot.addListener('message', function (from, to, message) {
                         bot.say(to, 'Invalid format, please specify a response for the given command.');
                     }
                     else {
-                        connection.query('SELECT command FROM commands WHERE command = "' + editCommand + '" AND channel = "' + to.substring(1) + '" LIMIT 1', function (err, rows, fields) {
+                        connection.query('SELECT command FROM ' + commandsTable + ' WHERE command = "' + editCommand + '" LIMIT 1', function (err, rows, fields) {
                             if (err)
                                 throw err;
                             if (rows[0])
-                                connection.query('UPDATE commands SET response = "' + newResponse + '" WHERE command = "' + editCommand + '" AND channel = "' + to.substring(1) + '" LIMIT 1', function (err, rows, fields) {
+                                connection.query('UPDATE ' + commandsTable + ' SET response = "' + newResponse + '" WHERE command = "' + editCommand + '" LIMIT 1', function (err, rows, fields) {
                                     if (err)
                                         throw err;
                                     else
                                         bot.say(to, 'Updated command ' + editCommand + '.');
-                                    connection.release;
                                 });
                             else
                                 bot.say(to, 'Command ' + editCommand + ' not found.');
-                            connection.release;
                         });
                     }
                 }
@@ -285,34 +416,6 @@ bot.addListener('message', function (from, to, message) {
         }
         else if (message == '!commands') {
             bot.say(to, 'Commands for this channel: http://www.bovinitydivinity.com/commands/' + to.substring(1));
-        }
-        else if (message.match(/^!promote /)) {
-            var modTable = to.substring(1) + '_moderators';
-            connection.query('SELECT moderator FROM ' + modTable + ' WHERE moderator = "' + from + '"', function (err, rows, fields) {
-                if (rows[0]) {
-                    var parsedRequest = message.split(' ');
-                    var promotedUser = parsedRequest[1];
-                    connection.query('SELECT viewer FROM viewers WHERE viewer = "' + promotedUser + '" AND channel = "' + to.substring(1) + '" LIMIT 1', function (err, rows, fields) {
-                        if (err)
-                            throw err;
-                        if (rows[0]) {
-                            connection.query('UPDATE viewers SET regular = 1 WHERE viewer = "' + promotedUser + '" AND channel = "' + to.substring(1) + '" LIMIT 1', function (err, rows, fields) {
-                                if (err)
-                                    throw err;
-                                bot.say(to, 'User ' + promotedUser + ' promoted to regular.');
-                                connection.release;
-                            });
-                        }
-                        else
-                            bot.say(to, 'User ' + promotedUser + ' not found in user database. Possibly wait for next tracker to run?');
-                        connection.release;
-                    });
-                }
-                else {
-                    bot.say(to, 'Sorry, only moderators can promote users.');
-                    connection.release;
-                }
-            });
         }
         else if (message.match(/^!topic /)) {
             var modTable = to.substring(1) + '_moderators';
@@ -334,7 +437,6 @@ bot.addListener('message', function (from, to, message) {
                             });
                             bot.say(to, from + ': Channel Topic Updated.');
                         }
-                        connection.release;
                     });
                 }
                 else {
@@ -362,7 +464,6 @@ bot.addListener('message', function (from, to, message) {
                             });
                             bot.say(to, from + ': Channel Game Updated.');
                         }
-                        connection.release;
                     });
                 }
                 else {
@@ -371,8 +472,9 @@ bot.addListener('message', function (from, to, message) {
             });
         }
         else {
+            var currentChannel = to.substring(1) + '_commands';
             var commandArray = message.split(' ');
-            connection.query('SELECT response FROM commands WHERE command = "' + commandArray[0] + '" AND channel = "' + to.substring(1) + '" LIMIT 1', function (err, rows, fields) {
+            connection.query('SELECT response FROM ' + currentChannel + ' WHERE command = "' + commandArray[0] + '" LIMIT 1', function (err, rows, fields) {
                 if (err)
                     throw err;
                 if (rows[0]) {
@@ -398,7 +500,6 @@ bot.addListener('message', function (from, to, message) {
                     else
                         bot.say(to, rows[0].response);
                 }
-                connection.release;
             });
         }
     }
@@ -415,8 +516,8 @@ function checkTimers() {
                 for (var x = 0; x < rows.length; x++) {
                     (function (x) {
                         var newDate = new Date(rows[x].lastfired);
-                        var timerFire = newDate.valueOf() + (rows[x].timer * 60000);
-                        var timeNow = new Date().valueOf() + (new Date().getTimezoneOffset() * 60000);
+                        var timerFire = newDate.valueOf() + (rows[x].timer * 60000) - 1;
+                        var timeNow = new Date().valueOf();
                         if (timerFire < timeNow) {
                             bot.say(channelList[i], rows[x].response);
                             connection.query('UPDATE timers SET lastfired = CURRENT_TIMESTAMP WHERE id = "' + rows[x].ID + '" LIMIT 1', function (err, rows, fields) {
@@ -449,7 +550,6 @@ function trackViewers() {
                                     connection.query('INSERT INTO ' + channelList[i].substring(1) + '_viewers (viewer, credits) VALUES ("' + combinedArray[x] + '", "10") ON DUPLICATE KEY UPDATE credits = credits + 10', function (err, rows, fields) {
                                         if (err)
                                             throw err;
-                                        connection.release;
                                     });
                                 })(x);
                             }
@@ -463,7 +563,6 @@ function trackViewers() {
                                         connection.query('INSERT INTO ' + channelList[i].substring(1) + '_viewers (viewer, credits) VALUES ("' + combinedArray[x] + '", "10") ON DUPLICATE KEY UPDATE credits = credits + 10', function (err, rows, fields) {
                                             if (err)
                                                 throw err;
-                                            connection.release;
                                         });
                                     })(x);
                                 }
@@ -477,7 +576,6 @@ function trackViewers() {
     /*connection.query('UPDATE viewers SET regular = 1 WHERE credits >= 40', function (err, rows, fields) {
         if (err)
             throw err;
-        connection.release;
     });*/
 }
 //Web interface
@@ -493,13 +591,24 @@ app.use(express.static('views/html'));
 server.listen(80, function () {
     console.log('Listening on Port 80');
 });
+// Draw Socket.
 io.on('connection', function (socket) {
-    socket.on('drawing', function (x, y, currX, currY, prevX, prevY) {
-        io.emit('draw', x, y, currX, currY, prevX, prevY);
+    console.log('Socket Connection');
+    socket.on('join', function (room) {
+        console.log('Room: ' + room);
+        socket.join(room);
+    });
+    socket.on('drawing', function (x, y, currX, currY, prevX, prevY, room) {
+        io.to(room).emit('draw', x, y, currX, currY, prevX, prevY);
     });
     socket.on('erase', function () {
         io.emit('erase');
     });
+});
+app.all('*', function (req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "X-Requested-With");
+    next();
 });
 app.get('*', function (req, res, next) {
     if (req.headers.host.slice(0, 3) != 'www') {
@@ -529,6 +638,58 @@ app.post('/', function (req, res) {
             }
         });
     }
+    else if (req.body.op == 'functions') {
+        var channel = userSession.user;
+        var hsStatus = req.body.hearthstone;
+        var csStatus = req.body.csgo;
+        var lolStatus = req.body.league;
+        connection.query('UPDATE channels SET league = "' + lolStatus + '" WHERE name = "' + channel + '" LIMIT 1', function (err, rows, fields) {
+            connection.query('UPDATE channels SET csgo = "' + csStatus + '" WHERE name = "' + channel + '" LIMIT 1', function (err, rows, fields) {
+                connection.query('UPDATE channels SET hearthstone = "' + hsStatus + '" WHERE name = "' + channel + '" LIMIT 1', function (err, rows, fields) {
+                    res.end('done');
+                });
+            });
+        });
+    }
+    else if (req.body.op == 'deleteCommand') {
+        var command = req.body.command;
+        var channel = userSession.user;
+        var commandsTable = userSession.user + '_commands';
+        connection.query('DELETE FROM ' + commandsTable + ' WHERE command = "' + command + '" LIMIT 1', function (err, rows, fields) {
+            if (err)
+                throw err;
+            res.end('done');
+        });
+    }
+    else if (req.body.op == 'editCommand') {
+        var command = req.body.command;
+        var response = req.body.response;
+        var channel = userSession.user;
+        var commandsTable = userSession.user + '_commands';
+        connection.query('UPDATE ' + commandsTable + ' SET response = "' + response + '" WHERE command = "' + command + '" LIMIT 1', function (err, rows, fields) {
+            if (err)
+                throw err;
+            res.end('done');
+        });
+    }
+    else if (req.body.op == 'addTimer') {
+        var announcement = req.body.announcement;
+        var delay = req.body.delay;
+        var channel = userSession.user;
+        connection.query('INSERT INTO timers (response, timer, channel) VALUES ("' + announcement + '", "' + delay + '", "' + channel + '")', function (err, rows, fields) {
+            if (err)
+                throw err;
+            res.end('done');
+        });
+    }
+    else if (req.body.op == 'deleteTimer') {
+        var timerID = req.body.timerID;
+        connection.query('DELETE FROM timers WHERE ID = "' + timerID + '"', function (err, rows, fields) {
+            if (err)
+                throw err;
+            res.end('done');
+        });
+    }
     else if (req.body.op == 'join') {
         bot.join('#' + req.body.channel, function () {
             var channelList = Object.keys(bot.chans);
@@ -550,55 +711,141 @@ app.post('/', function (req, res) {
         });
     }
 });
+app.post('/raffle', function (req, res) {
+    if (req.body.op == 'raffle') {
+        req.body.patron = req.body.patron.replace(/(\r\n|\n|\r|\))/gm, "");
+        req.body.patron = req.body.patron.replace(/  +/g, ' ');
+        var parsedPatron = req.body.patron.split('(');
+        parsedPatron[0] = parsedPatron[0].trim();
+        parsedPatron[1] = parsedPatron[1].trim();
+        if (parsedPatron[1] == previousEntrant)
+            consecutiveEntries++;
+        else
+            consecutiveEntries = 1;
+        console.log('Raffle entry registered. Patron: ' + parsedPatron[0] + ' & Item: ' + req.body.item);
+        console.log('Current consecutive entries: ' + consecutiveEntries);
+        connection.query('INSERT INTO raffle (patron, cardnumber, item) VALUES ("' + parsedPatron[0] + '","' + parsedPatron[1] + '","' + req.body.item + '")', function (err, rows, fields) {
+            res.end('done');
+            previousEntrant = parsedPatron[1];
+        });
+        if (consecutiveEntries == 10) {
+            connection.query('INSERT INTO raffle (patron, cardnumber, item) SELECT patron, cardnumber, item FROM raffle WHERE DATE(entryDate) = CURDATE() AND cardnumber = ' + parsedPatron[1], function (err, rows, fields) {
+                if (err)
+                    throw err;
+            });
+        }
+        else if (consecutiveEntries > 10) {
+            connection.query('INSERT INTO raffle (patron, cardnumber, item) VALUES ("' + parsedPatron[0] + '","' + parsedPatron[1] + '","' + req.body.item + '")', function (err, rows, fields) {
+                if (err)
+                    throw err;
+            });
+        }
+    }
+    else if (req.body.op == 'getWinner') {
+        connection.query('SELECT patron FROM raffle WHERE date(entryDate) BETWEEN "' + req.body.startDate + '" AND "' + req.body.endDate + '" ORDER BY RAND() LIMIT 1', function (err, rows, fields) {
+            if (rows[0]) {
+                res.send({ winner: rows[0]['patron'] });
+                res.end('done');
+            }
+            else {
+                res.send({ winner: 'No entries in that date range.' });
+                res.end('done');
+            }
+        });
+    }
+});
 app.get('/', function (req, res) {
     console.log('Website Client Connection. IP: ' + req.connection.remoteAddress);
     console.log('User-Agent: ' + req.headers['user-agent'] + '\n');
-    var userSession = req.session;
-    res.render('index.ejs', { clientid: auth.clientid, sessionName: userSession.user });
+    res.render('index.ejs', { clientid: auth.clientid, sessionName: req.session.user });
 });
-app.get('/commands/*', function (req, res) {
+// Draw webpage.
+app.get('/draw/:channel/drawframe.html', function (req, res) {
+    res.render('drawframe.ejs');
+});
+app.get('/commands/:channel', function (req, res) {
     //Public page, no user session.
-    var fullUrl = req.protocol + '://' + req.get('host') + req.originalUrl;
-    var channel = fullUrl.slice(41);
-    connection.query('SELECT response, timer FROM timers WHERE channel ="' + channel + '"', function (err, timers, fields) {
-        connection.query('SELECT command, response FROM commands WHERE channel ="' + channel + '"', function (err, commands, fields) {
+    var tableName = req.params.channel + '_commands';
+    var channel = req.params.channel;
+    connection.query('SELECT response, timer FROM timers WHERE channel = "' + channel + '"', function (err, timers, fields) {
+        connection.query('SELECT command, response FROM ' + tableName, function (err, commands, fields) {
             res.render('commandsPublic.ejs', { channel: channel, commands: commands, timers: timers });
         });
     });
 });
 app.get('/commands', function (req, res) {
-    var userSession = req.session;
-    connection.query('SELECT response, timer FROM timers WHERE channel ="' + userSession.user + '"', function (err, timers, fields) {
-        connection.query('SELECT command, response FROM commands WHERE channel ="' + userSession.user + '"', function (err, commands, fields) {
-            res.render('commands.ejs', { channel: userSession.user, commands: commands, timers: timers });
+    if (req.session.user) {
+        var userSession = req.session;
+        var tableName = userSession.user + '_commands';
+        connection.query('SELECT id, response, timer FROM timers WHERE channel ="' + userSession.user + '"', function (err, timers, fields) {
+            connection.query('SELECT command, response FROM ' + tableName, function (err, commands, fields) {
+                res.render('commands.ejs', { channel: userSession.user, commands: commands, timers: timers });
+            });
+        });
+    }
+    else
+        res.render('index.ejs', { clientid: auth.clientid, sessionName: '' });
+});
+app.get('/viewers', function (req, res) {
+    if (req.session.user) {
+        var userSession = req.session;
+        connection.query('SELECT viewer, credits FROM ' + userSession.user + '_viewers ORDER BY credits DESC', function (err, rows, fields) {
+            res.render('viewers.ejs', { channel: userSession.user, viewers: rows });
+        });
+    }
+    else
+        res.render('index.ejs', { clientid: auth.clientid, sessionName: '' });
+});
+app.get('/raffle', function (req, res) {
+    connection.query('SELECT patron, cardnumber, count(*) AS entries FROM raffle GROUP BY patron ORDER BY entries DESC', function (err, rows, fields) {
+        res.render('raffle.ejs', { patrons: rows });
+    });
+});
+app.get('/rafflestats', function (req, res) {
+    connection.query('SELECT patron, count(*) AS entries FROM raffle GROUP BY patron ORDER BY entries DESC', function (err, rows, fields) {
+        connection.query('SELECT count(*) as entries FROM raffle', function (err, total, fields) {
+            connection.query('SELECT CAST(date(entryDate) AS CHAR) AS sortDate, count(*) AS entries FROM raffle GROUP BY DATE(entryDate)', function (err, graphData, fields) {
+                connection.query('SELECT CAST(date(entryDate) AS CHAR) AS sortDate, count(DISTINCT patron) as patrons FROM raffle GROUP BY DATE(entryDate)', function (err, graphData2, fields) {
+                    res.render('rafflestats.ejs', { patrons: rows, total: total, graphData: graphData, graphData2: graphData2 });
+                });
+            });
         });
     });
 });
-app.get('/viewers', function (req, res) {
-    var userSession = req.session;
-    connection.query('SELECT viewes, credits FROM ' + userSession.user + '_viewers', function (err, rows, fields) {
-        if (!rows)
-            var newRows = new Array();
-        res.render('viewers.ejs', { channel: userSession.user, viewers: newRows });
-    });
+app.get('/rafflewinner', function (req, res) {
+    res.render('rafflewinner.ejs');
 });
 app.get('/functions', function (req, res) {
-    var userSession = req.session;
-    res.render('functions.ejs', { channel: userSession.user });
+    if (req.session.user) {
+        var userSession = req.session;
+        connection.query('SELECT hearthstone FROM channels WHERE name = "' + userSession.user + '"', function (err, hearthstone, fields) {
+            connection.query('SELECT csgo FROM channels WHERE name = "' + userSession.user + '"', function (err, csgo, fields) {
+                connection.query('SELECT league FROM channels WHERE name = "' + userSession.user + '"', function (err, league, fields) {
+                    res.render('functions.ejs', { channel: userSession.user, hearthstone: hearthstone[0]['hearthstone'], csgo: csgo[0]['csgo'], league: league[0]['league'] });
+                });
+            });
+        });
+    }
+    else
+        res.render('index.ejs', { clientid: auth.clientid, sessionName: '' });
 });
 app.get('/about', function (req, res) {
     var userSession = req.session;
     res.render('about.ejs', { channel: userSession.user });
 });
 app.get('/dashboard', function (req, res) {
-    var userSession = req.session;
-    var channelList = Object.keys(bot.chans);
-    if (channelList.indexOf('#' + userSession.user) != -1)
-        var botStatus = 'is';
+    if (req.session.user) {
+        var userSession = req.session;
+        var channelList = Object.keys(bot.chans);
+        if (channelList.indexOf('#' + userSession.user) != -1)
+            var botStatus = 'is';
+        else
+            var botStatus = 'is not';
+        res.render('dashboard.ejs', { channel: userSession.user, status: botStatus });
+        res.end('done');
+    }
     else
-        var botStatus = 'is not';
-    res.render('dashboard.ejs', { channel: userSession.user, status: botStatus });
-    res.end('done');
+        res.render('index.ejs', { clientid: auth.clientid, sessionName: '' });
 });
 app.get('/logout', function (req, res) {
     req.session.destroy();
@@ -609,7 +856,7 @@ app.get('*', function (req, res) {
     res.render('404.ejs', { status: 404, url: req.url });
 });
 //Cleaning up on exit
-process.stdin.resume();
+//process.stdin.resume();
 function exitHandler(options, err) {
     connection.end();
     if (options.cleanup)
