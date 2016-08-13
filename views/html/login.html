@@ -1,0 +1,27 @@
+<html>
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script src="https://ttv-api.s3.amazonaws.com/twitch.min.js"></script>
+    <script>
+        Twitch.init({ clientId: '77x2bphxdfi9xsekjd2nw99k3xnexfp', redirect_uri: 'http://www.bovinitydivinity.com/login.html', force_verify: 'true' }, function (error, status)
+        {
+            Twitch.logout();
+            if (status.authenticated)
+            {
+                $.post("http://www.bovinitydivinity.com", { clientHash: location.hash, op: 'login' }, function (data)
+                {
+                    if (data === 'done')
+                        document.location.assign('dashboard');
+                });
+            }
+            else
+            {
+                Twitch.login({ scope: ['user_read', 'channel_read', 'channel_editor'] });
+            }
+        });
+    </script>
+</head>
+<body>
+
+</body>
+</html>

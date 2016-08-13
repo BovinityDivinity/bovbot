@@ -1,0 +1,135 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>BovBot Admin Site</title>
+    <style>
+        iframe {
+            width: 1920px;
+            height: 1080px;
+            transform: scale(0.5, 0.5);
+            transform-origin: top left;
+            overflow: hidden;
+            position: absolute;
+        }
+
+        #iframeWrap {
+            height: 540px;
+            width: 960px;
+            overflow: hidden;
+            border: 1px solid black;
+            float: left;
+        }
+
+        #controls {
+            width: 14%;
+            border: 1px solid black;
+            float: right;
+        }
+    </style>
+    <!-- Bootstrap Core CSS -->
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="../css/sb-admin.css" rel="stylesheet">
+    <!-- Custom Fonts -->
+    <link href="../font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+    <script>
+        var getUrlParameter = function getUrlParameter(sParam)
+        {
+            var sPageURL = decodeURIComponent(window.location.search.substring(1)),
+                sURLVariables = sPageURL.split('&'),
+                sParameterName,
+                i;
+
+            for (i = 0; i < sURLVariables.length; i++)
+            {
+                sParameterName = sURLVariables[i].split('=');
+
+                if (sParameterName[0] === sParam)
+                {
+                    return sParameterName[1] === undefined ? true : sParameterName[1];
+                }
+            }
+        };
+    </script>
+</head>
+<body>
+    <div id="wrapper">
+        <!-- Navigation -->
+        <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation" id="navBar">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="/">BovBot</a>
+            </div>
+            <!-- Top Menu Items -->
+            <ul class="nav navbar-right top-nav"></ul>
+            <!-- Sidebar Menu Items - These collapse to the responsive navigation menu on small screens -->
+            <!-- /.navbar-collapse -->
+        </nav>
+        <div id="page-wrapper">
+            <div class="container-fluid">
+                <!-- Page Heading -->
+                <div class="row">
+                    <div class="col-lg-12">
+                        <h1 class="page-header" id="pageHeader">
+                            Draw
+                        </h1>
+                        <div class="contentDiv">
+                            <div id="iframeWrap">
+                                <iframe src="drawframe.html" id="drawFrame" style="z-index:1"></iframe>
+                                <iframe src="" id="twitchFrame" style="z-index:0"></iframe>
+                            </div>
+                            <div id="controls">
+                                <label for="brush-color">Click to set brush color.</label>
+                                <br />
+                                <input id="brush-color" type="color" value="#FFFFFF" onchange="changeColor()" />
+                                <br />
+                                <br />
+                                <button type="button" id="eraseButton" class="btn-success" onclick="eraseCanvas()">Clear Canvas</button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- /.row -->
+                </div>
+                <!-- /.container-fluid -->
+            </div>
+            <!-- /#page-wrapper -->
+        </div>
+        <!-- /#wrapper -->
+        <!-- jQuery -->
+        <script src="js/jquery.js"></script>
+        <!-- Bootstrap Core JavaScript -->
+        <script src="js/bootstrap.min.js"></script>
+        <script>
+            //$('#drawFrame').height(window.innerHeight - ($('#pageHeader').height() + $('#navBar').height() + 100));
+            function changeColor()
+            {
+                document.getElementById("drawFrame").contentWindow.x = document.getElementById('brush-color').value;
+            }
+            function eraseCanvas()
+            {
+                document.getElementById("drawFrame").contentWindow.erase();
+            }
+            $(function ()
+            {
+                $('#twitchFrame').attr('src', 'http://player.twitch.tv/?channel=' + getUrlParameter('channel'));
+            });
+        </script>
+</body>
+</html>

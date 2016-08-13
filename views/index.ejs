@@ -1,0 +1,21 @@
+<html>
+<head>
+    <link rel="stylesheet" type="text/css" href="css/bovbot.css">
+    <script>
+        var sessionName = '<%= sessionName %>';
+        if (sessionName)
+            document.location.assign('dashboard');
+    </script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script src="https://ttv-api.s3.amazonaws.com/twitch.min.js"></script>
+</head>
+<body>
+    <% include html/include/menu %>
+    <div class="contentDiv">
+        <p>BovBot Web Interface</p>
+        <p>Click below to connect your Twitch account to BovBot!</p>
+        <a href="login.html"><img id="loginButton" src="https://camo.githubusercontent.com/e3dadf5d1f371961805e6843fc7d9d611a1d14b5/687474703a2f2f7474762d6170692e73332e616d617a6f6e6177732e636f6d2f6173736574732f636f6e6e6563745f6461726b2e706e67" /></img></a>
+        </p>
+    </div>
+</body>
+</html>
