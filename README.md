@@ -48,8 +48,6 @@ Once these steps are followed, viewers can navigate to http://www.bovinitydivini
 
 ## On the to-do list:
 
-Adding easier customization of timers.
-
 Link protection.
 
 Phrase blacklists/spam filter/etc.
