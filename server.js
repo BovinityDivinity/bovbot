@@ -1,5 +1,3 @@
-// Rev - 8/15/16
-
 /*
 TODO: Finish website control panel - Add command controls, statistics, etc.
 TODO: Link protection.
@@ -9,8 +7,6 @@ var auth = require('./auth');
 var request = require('request');
 var DB = require('mysql');
 var irc = require('irc');
-var previousEntrant = 0;
-var consecutiveEntries = 1;
 var connection = DB.createPool({
     connectionLimit: 20,
     host: auth.dbaddress,
@@ -144,7 +140,7 @@ bot.addListener('message', function (from, to, message) {
     }
     if (message.match(/^!/)) {
         if (message == '!uptime') {
-            request('https://api.twitch.tv/kraken/streams/' + to.substring(1), function (error, response, body) {
+            request('https://api.twitch.tv/kraken/streams/' + to.substring(1) + '?oauth_token=' + auth.oauth.substring(6), function (error, response, body) {
                 if (!error && response.statusCode == 200) {
                     var output = JSON.parse(body);
                     if (output['stream']) {
@@ -163,9 +159,12 @@ bot.addListener('message', function (from, to, message) {
                             parseUptime += uptimeMS.getUTCSeconds() + " seconds. ";
                         bot.say(to, parseUptime);
                     }
-                    else
+                    else {
                         bot.say(to, 'Channel is not online.');
+                    }
                 }
+                else
+                    console.log('Got HTTP error');
             });
         }
         else if (message.match(/^!8ball/i)) {
@@ -713,49 +712,6 @@ app.post('/', function (req, res) {
         });
     }
 });
-app.post('/raffle', function (req, res) {
-    if (req.body.op == 'raffle') {
-        req.body.patron = req.body.patron.replace(/(\r\n|\n|\r|\))/gm, "");
-        req.body.patron = req.body.patron.replace(/  +/g, ' ');
-        var parsedPatron = req.body.patron.split('(');
-        parsedPatron[0] = parsedPatron[0].trim();
-        parsedPatron[1] = parsedPatron[1].trim();
-        if (parsedPatron[1] == previousEntrant)
-            consecutiveEntries++;
-        else
-            consecutiveEntries = 1;
-        console.log('Raffle entry registered. Patron: ' + parsedPatron[0] + ' & Item: ' + req.body.item);
-        console.log('Current consecutive entries: ' + consecutiveEntries);
-        connection.query('INSERT INTO raffle (patron, cardnumber, item) VALUES ("' + parsedPatron[0] + '","' + parsedPatron[1] + '","' + req.body.item + '")', function (err, rows, fields) {
-            res.end('done');
-            previousEntrant = parsedPatron[1];
-        });
-        if (consecutiveEntries == 10) {
-            connection.query('INSERT INTO raffle (patron, cardnumber, item) SELECT patron, cardnumber, item FROM raffle WHERE DATE(entryDate) = CURDATE() AND cardnumber = ' + parsedPatron[1], function (err, rows, fields) {
-                if (err)
-                    throw err;
-            });
-        }
-        else if (consecutiveEntries > 10) {
-            connection.query('INSERT INTO raffle (patron, cardnumber, item) VALUES ("' + parsedPatron[0] + '","' + parsedPatron[1] + '","' + req.body.item + '")', function (err, rows, fields) {
-                if (err)
-                    throw err;
-            });
-        }
-    }
-    else if (req.body.op == 'getWinner') {
-        connection.query('SELECT patron FROM raffle WHERE date(entryDate) BETWEEN "' + req.body.startDate + '" AND "' + req.body.endDate + '" ORDER BY RAND() LIMIT 1', function (err, rows, fields) {
-            if (rows[0]) {
-                res.send({ winner: rows[0]['patron'] });
-                res.end('done');
-            }
-            else {
-                res.send({ winner: 'No entries in that date range.' });
-                res.end('done');
-            }
-        });
-    }
-});
 app.get('/', function (req, res) {
     console.log('Website Client Connection. IP: ' + req.connection.remoteAddress);
     console.log('User-Agent: ' + req.headers['user-agent'] + '\n');
@@ -798,24 +754,32 @@ app.get('/viewers', function (req, res) {
     else
         res.render('index.ejs', { clientid: auth.clientid, sessionName: '' });
 });
-app.get('/raffle', function (req, res) {
-    connection.query('SELECT patron, cardnumber, count(*) AS entries FROM raffle GROUP BY patron ORDER BY entries DESC', function (err, rows, fields) {
-        res.render('raffle.ejs', { patrons: rows });
+app.get('/api/viewers/:channel', function (req, res) {
+    connection.query('SELECT viewer as label, credits as value FROM ' + req.params.channel + '_viewers ORDER BY credits DESC', function (err, rows, fields) {
+        var widgetData = { "items": [] };
+        widgetData.items = rows;
+        res.send(widgetData);
     });
 });
-app.get('/rafflestats', function (req, res) {
-    connection.query('SELECT patron, count(*) AS entries FROM raffle GROUP BY patron ORDER BY entries DESC', function (err, rows, fields) {
-        connection.query('SELECT count(*) as entries FROM raffle', function (err, total, fields) {
-            connection.query('SELECT CAST(date(entryDate) AS CHAR) AS sortDate, count(*) AS entries FROM raffle GROUP BY DATE(entryDate)', function (err, graphData, fields) {
-                connection.query('SELECT CAST(date(entryDate) AS CHAR) AS sortDate, count(DISTINCT patron) as patrons FROM raffle GROUP BY DATE(entryDate)', function (err, graphData2, fields) {
-                    res.render('rafflestats.ejs', { patrons: rows, total: total, graphData: graphData, graphData2: graphData2 });
-                });
-            });
-        });
+app.get('/api/currentviewers/:channel', function (req, res) {
+    request('http://tmi.twitch.tv/group/user/binnietv/chatters', function (error, response, body) {
+        if (!error && response.statusCode == 200) {
+            var parsedData = JSON.parse(body);
+            var widgetData = { "item": [{ "text": "", "type": 0 }] };
+            widgetData.item[0].text = "" + parsedData.chatter_count;
+            res.send(widgetData);
+        }
     });
 });
-app.get('/rafflewinner', function (req, res) {
-    res.render('rafflewinner.ejs');
+app.get('/api/:stat/:channel', function (req, res) {
+    request('https://api.twitch.tv/kraken/channels/' + req.params.channel + '?oauth_token=' + auth.oauth.substring(6), function (error, response, body) {
+        if (!error && response.statusCode == 200) {
+            var parsedData = JSON.parse(body);
+            var widgetData = { "item": [{ "text": "", "type": 0 }] };
+            widgetData.item[0].text = "" + parsedData[req.params.stat];
+            res.send(widgetData);
+        }
+    });
 });
 app.get('/functions', function (req, res) {
     if (req.session.user) {
