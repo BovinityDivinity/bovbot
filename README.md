@@ -24,7 +24,7 @@ A simple Twitch chatbot developed for BinnieTV as a Node practice project. Could
 
 ## Timers
 
-Currently, BovBot supports the addition of timers that are executed on a given interval. Timers can be added, edited and deleted on the BovBov administration website. 
+Currently, BovBot supports the addition of timers that are executed on a given interval. Timers can be added, edited and deleted on the BovBot administration website. 
 
 ## Viewer Tracking
 
@@ -58,4 +58,6 @@ Viewer games played via chat that appear on-stream.
 
 ## Control Panel
 
-Web interface can be viewed at: http://www.bovinitydivinity.com (Requires Twitch login, and is a development server so may be down frequently.)
+Web interface can be viewed at: http://www.bovinitydivinity.com (Requires Twitch login, and is a development server so may be down frequently.) 
+
+Some other functions that have not yet been completed or polished will appear on the interface panel that may not be documented here.
