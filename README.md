@@ -42,6 +42,12 @@ Currently, BovBot supports the addition of timers that are executed on a given i
 
 Every 15 minutes, BovBot currently takes a survey of all viewers in each channel that it is present in and awards "currency" to said viewers. Currently this tracking and currency has no usage beyond the list of viewers (which can be viewed on the BovBot admin site) but in the future will be used for determining which viewers are 'regulars', the threshold after which a viewer is allowed to post links, the ability to weight viewers entries into giveaways if desired, or the spending of currency for giveaways. 
 
+## Spam Filter
+
+If BovBot is a moderator in your channel, it will automatically timeout any viewer posting an unbroken chain of six or more ASCII characters (excluding typical punctuation). 
+
+Currently this functionality cannot be disabled or customized on the control panel, which can render it a bit oppressive right now. Customization will come in a future update. 
+
 ## Variables
 
 BovBot currently supports the usage of variables in custom commands. Custom variables take the form of $(1) and up to nine custom variables can be added per command, up to $(9). Commands with custom variables will return an error if an improper number of custom variables are passed when invoking the command.
