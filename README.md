@@ -30,7 +30,7 @@ BovBot is not (yet) capable of accessing arbitrary APIs via user commands. Howev
 
 !hs [card name] - Returns details (Cost, text, attack/defense) of a given Hearthstone card. Will return the nearest match if only a partial or incorrect name is given.
 
-!skin [weapon name] | [skin name] ([quality]) - Returns the lowest and median prices of any given CS:GO skin currently on the steam marketplace. Will return undefined if no listings for that item are found, or an error if the given skin does not exist. ex: !skin AK-47 | Redline (FN)
+!skin [weapon name] | [skin name] [quality] - Returns the lowest and median prices of any given CS:GO skin currently on the steam marketplace. Will return undefined if no listings for that item are found, or an error if the given skin does not exist. ex: !skin AK-47 | Redline (FN)
 
 !champion [name] [key] - Returns the abilities and passive of a given League of Legends character. If the optional key value is specified, will instead return the details of the character ability associated with that key. 
 
