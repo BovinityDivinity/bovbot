@@ -16,11 +16,13 @@ A simple Twitch chatbot developed for BinnieTV as a Node practice project. Using
 
 !commands - Returns a link to a page containing all the custom commands for the current channel.
 
-!topic - Changes the topic of the current stream.
+!topic [topic] - Changes the topic of the current stream.
 
-!game - Changes the game of the current stream. 
+!game [game] - Changes the game of the current stream. 
 
 !promote [name] - Promotes a viewer to 'regular' status. (Currently has no effect)
+
+!8ball [question] - Ask the Magic 8-Ball a question!
 
 ## External APIs
 
