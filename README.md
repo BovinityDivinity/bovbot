@@ -60,7 +60,7 @@ $(random) - Returns the name of a random viewer currently in the stream.
 
 ## Draw
 
-Draw is a BovBot functionality that allows viewers to draw directly on the stream that they are viewing. Draw requires the broadcaster to have the CLR Browser plugin installed in OBS, and have a CLR Browser source with a width and height equal to their stream width and height. In addition, the CLR Browser source must be pointed at http://www.bovinitydivinity.com/drawframe.html. 
+Draw is a BovBot functionality that allows viewers to draw directly on the stream that they are viewing. Draw requires the broadcaster to have the CLR Browser plugin installed in OBS, and have a CLR Browser source with a width and height equal to their stream width and height. In addition, the CLR Browser source must be pointed at http://www.bovinitydivinity.com/draw/[channelName]/drawframe.html. 
 
 Once these steps are followed, viewers can navigate to http://www.bovinitydivinity.com/draw.html?channel=[channelName] and will see the stream specified in the URL. Viewers can draw directly on this copy of the stream, and the results will appear live on the stream itself. 
 
