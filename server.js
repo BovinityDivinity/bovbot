@@ -1,12 +1,8 @@
-/*
-TODO: Finish website control panel - Add command controls, statistics, etc.
-TODO: Link protection.
-TODO: Extra content: Song requests/Games/Giveaways?
-*/
 var auth = require('./auth');
 var request = require('request');
 var DB = require('mysql');
 var irc = require('irc');
+
 var connection = DB.createPool({
     connectionLimit: 20,
     host: auth.dbaddress,
@@ -14,6 +10,7 @@ var connection = DB.createPool({
     password: auth.password,
     database: auth.dbname
 });
+
 //IRC Connection
 var config = {
     port: 6667,
@@ -21,10 +18,13 @@ var config = {
     nick: 'bovbot',
     password: auth.oauth
 };
+
 var bot = new irc.Client(config.server, config.nick, { password: config.password, floodProtection: true, floodProtectionDelay: 1000, autoConnect: false });
+
 function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
+
 bot.connect(function () {
     console.log('Logging in: irc.twitch.tv');
     bot.send('CAP REQ', 'twitch.tv/membership');
@@ -33,10 +33,12 @@ bot.connect(function () {
     bot.join('#binnietv');
     bot.join('#roofonfire');
 });
+
 //Bot event Listeners
 bot.addListener('error', function (message) {
     console.error('ERROR: %s: %s', message.command, message.args.join(' '));
 });
+
 bot.addListener('join', function (channel, nick, message) {
     if (nick == 'bovbot') {
         bot.say(channel, '.mods');
@@ -51,6 +53,7 @@ bot.addListener('join', function (channel, nick, message) {
         });
     }
 });
+
 bot.addListener('notice', function (nick, to, text, message) {
     console.log(message);
     if (message.args[1].slice(0, 14) == 'The moderators') {
@@ -125,8 +128,9 @@ bot.addListener('notice', function (nick, to, text, message) {
         });
     }
 });
+
 bot.addListener('message', function (from, to, message) {
-    if (message.match(/[^\w\s\!\?\.]{6,}/g)) {
+    if (message.match(/[^\w\s!?.]{6,}/g)) {
         bot.say(to, '.timeout ' + from + ' 300');
         var modTable = to.substring(1) + '_moderators';
         connection.query('SELECT moderator FROM ' + modTable + ' WHERE moderator = "' + from + '"', function (err, rows, fields) {
@@ -191,8 +195,8 @@ bot.addListener('message', function (from, to, message) {
                         output[0]['playerClass'] = 'Neutral';
                     }
                     if (output[0]['text']) {
-                        output[0]['text'] = output[0]['text'].replace(/\<b\>/g, '');
-                        output[0]['text'] = output[0]['text'].replace(/\<\/b\>/g, '');
+                        output[0]['text'] = output[0]['text'].replace(/<b>/g, '');
+                        output[0]['text'] = output[0]['text'].replace(/<\/b>/g, '');
                         if (output[0]['type'] == 'Minion') {
                             bot.say(to, "Card Name: " + output[0]['name'] + ", Cost: (" + output[0]['cost'] + "), Class: " + output[0]['playerClass'] + ", Text: " + output[0]['text'] +
                                 ", Attack: " + output[0]['attack'] + ", Health: " + output[0]['health']);
@@ -505,6 +509,7 @@ bot.addListener('message', function (from, to, message) {
         }
     }
 });
+
 //Timed Messages
 setInterval(checkTimers, 900000);
 function checkTimers() {
@@ -532,6 +537,7 @@ function checkTimers() {
         })(i);
     }
 }
+
 //Track viewers/award currency
 setInterval(trackViewers, 900000);
 function trackViewers() {
@@ -579,6 +585,7 @@ function trackViewers() {
             throw err;
     });*/
 }
+
 //Web interface
 var express = require('express');
 var app = express();
@@ -586,12 +593,14 @@ var server = require('http').Server(app);
 var bodyParser = require('body-parser');
 var session = require('express-session');
 var io = require('socket.io')(server);
+
 app.use(session({ secret: auth.secret, resave: false, saveUninitialized: true }));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static('views/html'));
 server.listen(80, function () {
     console.log('Listening on Port 80');
 });
+
 // Draw Socket.
 io.on('connection', function (socket) {
     console.log('Socket Connection');
@@ -606,11 +615,13 @@ io.on('connection', function (socket) {
         io.emit('erase');
     });
 });
+
 app.all('*', function (req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "X-Requested-With");
     next();
 });
+
 app.get('*', function (req, res, next) {
     if (req.headers.host.slice(0, 3) != 'www') {
         res.redirect(301, 'http://www.' + req.headers.host + req.url);
@@ -619,6 +630,7 @@ app.get('*', function (req, res, next) {
         next();
     }
 });
+
 app.post('/', function (req, res) {
     var userSession = req.session;
     if (req.body.op == "login") {
@@ -712,15 +724,18 @@ app.post('/', function (req, res) {
         });
     }
 });
+
 app.get('/', function (req, res) {
     console.log('Website Client Connection. IP: ' + req.connection.remoteAddress);
     console.log('User-Agent: ' + req.headers['user-agent'] + '\n');
     res.render('index.ejs', { clientid: auth.clientid, sessionName: req.session.user });
 });
+
 // Draw webpage.
 app.get('/draw/:channel/drawframe.html', function (req, res) {
     res.render('drawframe.ejs');
 });
+
 app.get('/commands/:channel', function (req, res) {
     //Public page, no user session.
     var tableName = req.params.channel + '_commands';
@@ -731,6 +746,7 @@ app.get('/commands/:channel', function (req, res) {
         });
     });
 });
+
 app.get('/commands', function (req, res) {
     if (req.session.user) {
         var userSession = req.session;
@@ -744,6 +760,7 @@ app.get('/commands', function (req, res) {
     else
         res.render('index.ejs', { clientid: auth.clientid, sessionName: '' });
 });
+
 app.get('/viewers', function (req, res) {
     if (req.session.user) {
         var userSession = req.session;
@@ -754,33 +771,7 @@ app.get('/viewers', function (req, res) {
     else
         res.render('index.ejs', { clientid: auth.clientid, sessionName: '' });
 });
-app.get('/api/viewers/:channel', function (req, res) {
-    connection.query('SELECT viewer as label, credits as value FROM ' + req.params.channel + '_viewers ORDER BY credits DESC', function (err, rows, fields) {
-        var widgetData = { "items": [] };
-        widgetData.items = rows;
-        res.send(widgetData);
-    });
-});
-app.get('/api/currentviewers/:channel', function (req, res) {
-    request('http://tmi.twitch.tv/group/user/binnietv/chatters', function (error, response, body) {
-        if (!error && response.statusCode == 200) {
-            var parsedData = JSON.parse(body);
-            var widgetData = { "item": [{ "text": "", "type": 0 }] };
-            widgetData.item[0].text = "" + parsedData.chatter_count;
-            res.send(widgetData);
-        }
-    });
-});
-app.get('/api/:stat/:channel', function (req, res) {
-    request('https://api.twitch.tv/kraken/channels/' + req.params.channel + '?oauth_token=' + auth.oauth.substring(6), function (error, response, body) {
-        if (!error && response.statusCode == 200) {
-            var parsedData = JSON.parse(body);
-            var widgetData = { "item": [{ "text": "", "type": 0 }] };
-            widgetData.item[0].text = "" + parsedData[req.params.stat];
-            res.send(widgetData);
-        }
-    });
-});
+
 app.get('/functions', function (req, res) {
     if (req.session.user) {
         var userSession = req.session;
@@ -795,10 +786,12 @@ app.get('/functions', function (req, res) {
     else
         res.render('index.ejs', { clientid: auth.clientid, sessionName: '' });
 });
+
 app.get('/about', function (req, res) {
     var userSession = req.session;
     res.render('about.ejs', { channel: userSession.user });
 });
+
 app.get('/dashboard', function (req, res) {
     if (req.session.user) {
         var userSession = req.session;
@@ -813,14 +806,17 @@ app.get('/dashboard', function (req, res) {
     else
         res.render('index.ejs', { clientid: auth.clientid, sessionName: '' });
 });
+
 app.get('/logout', function (req, res) {
     req.session.destroy();
     res.render('logout.ejs', {});
 });
+
 app.get('*', function (req, res) {
     var userSession = req.session;
     res.render('404.ejs', { status: 404, url: req.url });
 });
+
 //Cleaning up on exit
 //process.stdin.resume();
 function exitHandler(options, err) {
@@ -832,7 +828,7 @@ function exitHandler(options, err) {
     if (options.exit)
         process.exit();
 }
+
 process.on('exit', exitHandler.bind(null, { cleanup: true }));
 process.on('SIGINT', exitHandler.bind(null, { exit: true }));
 process.on('uncaughtException', exitHandler.bind(null, { exit: true }));
-//# sourceMappingURL=server.js.map
