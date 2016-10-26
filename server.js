@@ -3,6 +3,11 @@ var request = require('request');
 var DB = require('mysql');
 var irc = require('irc');
 
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+//Database Connection
 var connection = DB.createPool({
     connectionLimit: 20,
     host: auth.dbaddress,
@@ -19,11 +24,8 @@ var config = {
     password: auth.oauth
 };
 
+//Create bot IRC client, connect to Twitch IRC, join default channels, and perform capability requests
 var bot = new irc.Client(config.server, config.nick, { password: config.password, floodProtection: true, floodProtectionDelay: 1000, autoConnect: false });
-
-function getRandomInt(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-}
 
 bot.connect(function () {
     console.log('Logging in: irc.twitch.tv');
@@ -34,7 +36,7 @@ bot.connect(function () {
     bot.join('#roofonfire');
 });
 
-//Bot event Listeners
+//Begin Bot Event Listeners
 bot.addListener('error', function (message) {
     console.error('ERROR: %s: %s', message.command, message.args.join(' '));
 });
@@ -509,8 +511,9 @@ bot.addListener('message', function (from, to, message) {
         }
     }
 });
+// End Bot Event Listeners
 
-//Timed Messages
+// Check Timed Messages
 setInterval(checkTimers, 900000);
 function checkTimers() {
     var channelList = Object.keys(bot.chans);
@@ -538,7 +541,7 @@ function checkTimers() {
     }
 }
 
-//Track viewers/award currency
+// Track viewers/award currency
 setInterval(trackViewers, 900000);
 function trackViewers() {
     var channelList = Object.keys(bot.chans);
@@ -580,13 +583,9 @@ function trackViewers() {
             });
         })(i);
     }
-    /*connection.query('UPDATE viewers SET regular = 1 WHERE credits >= 40', function (err, rows, fields) {
-        if (err)
-            throw err;
-    });*/
 }
 
-//Web interface
+// Begin Web interface
 var express = require('express');
 var app = express();
 var server = require('http').Server(app);
@@ -601,7 +600,7 @@ server.listen(80, function () {
     console.log('Listening on Port 80');
 });
 
-// Draw Socket.
+// Draw Socket
 io.on('connection', function (socket) {
     console.log('Socket Connection');
     socket.on('join', function (room) {
@@ -731,13 +730,13 @@ app.get('/', function (req, res) {
     res.render('index.ejs', { clientid: auth.clientid, sessionName: req.session.user });
 });
 
-// Draw webpage.
+// The Draw Webpage.
 app.get('/draw/:channel/drawframe.html', function (req, res) {
     res.render('drawframe.ejs');
 });
 
+// Public Commands Page, no user session.
 app.get('/commands/:channel', function (req, res) {
-    //Public page, no user session.
     var tableName = req.params.channel + '_commands';
     var channel = req.params.channel;
     connection.query('SELECT response, timer FROM timers WHERE channel = "' + channel + '"', function (err, timers, fields) {
@@ -816,6 +815,7 @@ app.get('*', function (req, res) {
     var userSession = req.session;
     res.render('404.ejs', { status: 404, url: req.url });
 });
+// End Web Interface
 
 //Cleaning up on exit
 //process.stdin.resume();
