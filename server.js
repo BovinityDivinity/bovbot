@@ -44,6 +44,7 @@ bot.addListener('error', function (message) {
 bot.addListener('join', function (channel, nick, message) {
     if (nick == 'bovbot') {
         bot.say(channel, '.mods');
+        // Check to see if commands table exists for this channel. If not, create it.
         connection.query('SHOW TABLES LIKE "' + channel.substring(1) + '_commands"', function (err, rows, fields) {
             if (err)
                 throw err;
@@ -58,6 +59,7 @@ bot.addListener('join', function (channel, nick, message) {
 
 bot.addListener('notice', function (nick, to, text, message) {
     console.log(message);
+    // Getting list of mods from Twitch notice. This is a REALLY sloppy way of doing it, need to switch it over to a better method. 
     if (message.args[1].slice(0, 14) == 'The moderators') {
         var channel = message.args[0].substring(1);
         var moderatorList = message.args[1].split(',');
@@ -66,6 +68,7 @@ bot.addListener('notice', function (nick, to, text, message) {
         for (var i = 0; i < moderatorList.length; i++) {
             moderatorList[i] = moderatorList[i].replace(' ', '');
         }
+        // Check to see if moderators table exists for this channel. If so, update it. If not, create it and populate it. 
         connection.query('SHOW TABLES LIKE "' + channel + '_moderators"', function (err, rows, fields) {
             if (err)
                 throw err;
@@ -105,6 +108,7 @@ bot.addListener('notice', function (nick, to, text, message) {
             }
         });
     }
+    // If there are no moderators for a channel, we still have to list the broadcaster as a mod in the table.
     else if (message.args[1].slice(0, 12) == 'There are no') {
         var channel = message.args[0].substring(1);
         console.log('Moderation Check: ' + channel);
@@ -131,6 +135,7 @@ bot.addListener('notice', function (nick, to, text, message) {
     }
 });
 
+// The ASCII spam protection listener. Needs to be updated so that users can customize it.
 bot.addListener('message', function (from, to, message) {
     if (message.match(/[^\w\s!?.]{6,}/g)) {
         bot.say(to, '.timeout ' + from + ' 300');
@@ -144,6 +149,7 @@ bot.addListener('message', function (from, to, message) {
             }
         });
     }
+    // Uptime command. Seems very bulky for a simple time comparison, probably can streamline it later.
     if (message.match(/^!/)) {
         if (message == '!uptime') {
             request('https://api.twitch.tv/kraken/streams/' + to.substring(1) + '?oauth_token=' + auth.oauth.substring(6), function (error, response, body) {
