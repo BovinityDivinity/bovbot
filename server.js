@@ -2,6 +2,8 @@ var auth = require('./auth');
 var request = require('request');
 var DB = require('mysql');
 var irc = require('irc');
+var ircMsg = require('irc-message').parse;
+var checkTables = require('./checkTables');
 
 function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -31,9 +33,9 @@ bot.connect(function () {
     console.log('Logging in: irc.twitch.tv');
     bot.send('CAP REQ', 'twitch.tv/membership');
     bot.send('CAP REQ', 'twitch.tv/commands');
+    bot.send('CAP REQ', 'twitch.tv/tags'); //Need IRCv3 capabilities!
     bot.join('#bovbot');
     bot.join('#binnietv');
-    bot.join('#roofonfire');
 });
 
 //Begin Bot Event Listeners
@@ -41,116 +43,52 @@ bot.addListener('error', function (message) {
     console.error('ERROR: %s: %s', message.command, message.args.join(' '));
 });
 
-bot.addListener('join', function (channel, nick, message) {
+bot.addListener('join', function (channel, nick) {
     if (nick == 'bovbot') {
-        bot.say(channel, '.mods');
-        // Check to see if commands table exists for this channel. If not, create it.
-        connection.query('SHOW TABLES LIKE "' + channel.substring(1) + '_commands"', function (err, rows, fields) {
-            if (err)
-                throw err;
-            if (!rows[0]) {
-                connection.query('CREATE TABLE ' + channel.substring(1) + '_commands (command VARCHAR(255), response VARCHAR(255))', function (err, rows, fields) {
-                    console.log('Created new Commands table: ' + channel);
-                });
-            }
-        });
+        console.log(nick + ': Joining channel: ' + channel);
+        checkTables(channel, connection);
     }
 });
 
 bot.addListener('notice', function (nick, to, text, message) {
     console.log(message);
-    // Getting list of mods from Twitch notice. This is a REALLY sloppy way of doing it, need to switch it over to a better method. 
-    if (message.args[1].slice(0, 14) == 'The moderators') {
-        var channel = message.args[0].substring(1);
-        var moderatorList = message.args[1].split(',');
-        console.log('Moderation Check: ' + channel);
-        moderatorList[0] = moderatorList[0].replace('The moderators of this room are: ', '');
-        for (var i = 0; i < moderatorList.length; i++) {
-            moderatorList[i] = moderatorList[i].replace(' ', '');
-        }
-        // Check to see if moderators table exists for this channel. If so, update it. If not, create it and populate it. 
-        connection.query('SHOW TABLES LIKE "' + channel + '_moderators"', function (err, rows, fields) {
-            if (err)
-                throw err;
-            if (rows[0]) {
-                connection.query('TRUNCATE TABLE ' + channel + '_moderators', function (err, rows, fields) {
-                    for (var x = 0; x < moderatorList.length; x++) {
-                        (function (x) {
-                            connection.query('INSERT INTO ' + channel + '_moderators (moderator) VALUES ("' + moderatorList[x] + '")', function (err, rows, fields) {
-                                if (err)
-                                    throw err;
-                            });
-                        })(x);
-                    }
-                    connection.query('INSERT INTO ' + channel + '_moderators (moderator) values ("' + channel + '")', function (err, rows, fields) {
-                        if (err)
-                            throw err;
-                    });
-                });
-            }
-            else {
-                connection.query('CREATE TABLE ' + channel + '_moderators (id INT(6) UNSIGNED AUTO_INCREMENT PRIMARY KEY, moderator VARCHAR(50) NOT NULL)', function (err, rows, fields) {
-                    if (err)
-                        throw err;
-                    for (var x = 0; x < moderatorList.length; x++) {
-                        (function (x) {
-                            connection.query('INSERT IGNORE INTO ' + channel + '_moderators (moderator) VALUES ("' + moderatorList[x] + '")', function (err, rows, fields) {
-                                if (err)
-                                    throw err;
-                            });
-                        })(x);
-                    }
-                    connection.query('INSERT INTO ' + channel + '_moderators (moderator) values ("' + channel + '")', function (err, rows, fields) {
-                        if (err)
-                            throw err;
-                    });
-                });
-            }
-        });
-    }
-    // If there are no moderators for a channel, we still have to list the broadcaster as a mod in the table.
-    else if (message.args[1].slice(0, 12) == 'There are no') {
-        var channel = message.args[0].substring(1);
-        console.log('Moderation Check: ' + channel);
-        connection.query('SHOW TABLES LIKE "' + channel + '_moderators"', function (err, rows, fields) {
-            if (rows[0]) {
-                connection.query('TRUNCATE TABLE ' + channel + '_moderators', function (err, rows, fields) {
-                    connection.query('INSERT INTO ' + channel + '_moderators (moderator) values ("' + channel + '")', function (err, rows, fields) {
-                        if (err)
-                            throw err;
-                    });
-                });
-            }
-            else {
-                connection.query('CREATE TABLE ' + channel + '_moderators (id INT(6) UNSIGNED AUTO_INCREMENT PRIMARY KEY, moderator VARCHAR(50) NOT NULL)', function (err, rows, fields) {
-                    if (err)
-                        throw err;
-                    connection.query('INSERT INTO ' + channel + '_moderators (moderator) values ("' + channel + '")', function (err, rows, fields) {
-                        if (err)
-                            throw err;
-                    });
-                });
-            }
-        });
-    }
 });
 
-// The ASCII spam protection listener. Needs to be updated so that users can customize it.
-bot.addListener('message', function (from, to, message) {
-    if (message.match(/[^\w\s!?.]{6,}/g)) {
-        bot.say(to, '.timeout ' + from + ' 300');
-        var modTable = to.substring(1) + '_moderators';
-        connection.query('SELECT moderator FROM ' + modTable + ' WHERE moderator = "' + from + '"', function (err, rows, fields) {
-            if (!rows[0]) {
-                console.log('ASCII Spam Detected: Not Moderator. Message: ' + message);
-                bot.say(to, 'Timed out ' + from + ' for ascii spam (5 min).');
-            }
-            else {
-            }
-        });
+// Handler for Chat Messages
+bot.addListener('message', function (from, to, message, userType) {
+    var isMod = false;
+
+    if (userType == 'mod' || from.toLowerCase() == to.substring(1))
+        isMod = true;
+
+    connection.query('INSERT INTO ' + to.substring(1) + '_chatlog (viewer, text) VALUES ("' + from + '","' + message + '")', function (err, rows, fields) {
+        if (err)
+            throw err;
+    });
+
+    if (message.match(/[^\w\s!?.]{10,}/g)) {
+        if (isMod) {
+            console.log('User is a moderator');
+        }
+        else {
+            console.log('ASCII Spam Detected: Not Moderator. Message: ' + message);
+            bot.say(to, 'Timed out ' + from + ' for ascii spam (5 min).');
+            bot.say(to, '.timeout ' + from + ' 300');
+        }
     }
-    // Uptime command. Seems very bulky for a simple time comparison, probably can streamline it later.
     if (message.match(/^!/)) {
+        if (message == '!giveaway') {
+            if (from == to.substring(1)) {
+                bot.say(to, 'Giveaway Time!');
+                connection.query('SELECT viewer FROM ' + to.substring(1) + '_chatlog ORDER BY RAND() LIMIT 1', function (err, rows, fields) {
+                    if (err)
+                        throw err;
+                    bot.say(to, 'And the winner is: ' + rows[0]['viewer'].toUpperCase() + rows[0]['viewer'].substring(1) + '!');
+                });
+            }
+            else
+                bot.say(to, 'Only the broadcaster decides when to do a giveaway.');
+        }
         if (message == '!uptime') {
             request('https://api.twitch.tv/kraken/streams/' + to.substring(1) + '?oauth_token=' + auth.oauth.substring(6), function (error, response, body) {
                 if (!error && response.statusCode == 200) {
@@ -240,6 +178,8 @@ bot.addListener('message', function (from, to, message) {
             parsedRequest = parsedRequest.replace('Huntsman Knife', '%E2%98%85 Huntsman Knife');
             parsedRequest = parsedRequest.replace('Shadow Daggers', '%E2%98%85 Shadow Daggers');
             parsedRequest = parsedRequest.replace('Bayonet', '%E2%98%85 Bayonet');
+            parsedRequest = parsedRequest.replace('M9 Bayonet', '%E2%98%85 M9 Bayonet');
+            parsedRequest = parsedRequest.replace('Bowie Knife', '%E2%98%85 Bowie Knife');
             parsedRequest = parsedRequest.replace('(FN)', '(Factory New)');
             parsedRequest = parsedRequest.replace('(WW)', '(Well-Worn)');
             parsedRequest = parsedRequest.replace('(FT)', '(Field-Tested)');
@@ -322,14 +262,7 @@ bot.addListener('message', function (from, to, message) {
                 }
             });
         }
-        else if (message == '!modcheck') {
-            if (from == 'bovinity') {
-                bot.part(to, function (channel, nick, reason, message) {
-                    bot.join(to);
-                });
-            }
-        }
-        else if (message == '!join') {
+        else if (message.match(/^!join /)) {
             if (to == "#bovbot") {
                 if (from == 'bovinity') {
                     var parsedMessage = message.split(' ');
@@ -341,148 +274,145 @@ bot.addListener('message', function (from, to, message) {
                 }
             }
         }
-        else if (message.match(/^!addcom /)) {
-            var modTable = to.substring(1) + '_moderators';
-            var commandsTable = to.substring(1) + '_commands';
-            connection.query('SELECT moderator FROM ' + modTable + ' WHERE moderator = "' + from + '"', function (err, rows, fields) {
-                if (rows[0]) {
-                    var parsedRequest = message.split(' ');
-                    var newCommand = parsedRequest[1];
-                    var newResponse = parsedRequest.slice(2).join(' ');
-                    if (!newCommand.match(/^!/) || !newResponse)
-                        bot.say(to, 'Invalid command format. Must begin with ! and contain a suitable response.');
-                    else {
-                        connection.query('SELECT command FROM ' + commandsTable + ' WHERE command = "' + newCommand + '" LIMIT 1', function (err, rows, fields) {
-                            if (err)
-                                throw err;
-                            if (rows[0])
-                                bot.say(to, 'Command ' + newCommand + ' already exists, ignoring.');
-                            else
-                                connection.query('INSERT INTO ' + commandsTable + ' (command, response) VALUES ("' + newCommand + '","' + newResponse + '")', function (err, rows, fields) {
-                                    if (err)
-                                        throw err;
-                                    bot.say(to, 'Command ' + newCommand + ' added.');
-                                });
-                        });
-                    }
+        else if (message.match(/^!part /)) {
+            if (to == "#bovbot") {
+                if (from == 'bovinity') {
+                    var parsedMessage = message.split(' ');
+                    bot.part('#' + parsedMessage[1], function () { });
                 }
-                else
-                    bot.say(to, 'Sorry, only moderators can add commands.');
-            });
+                else {
+                    console.log('Part request for channel: ' + from);
+                    bot.part('#' + from, function () { });
+                }
+            }
         }
-        else if (message.match(/^!delcom /)) {
-            var modTable = to.substring(1) + '_moderators';
+        else if (message.match(/^!addcom /)) {
             var commandsTable = to.substring(1) + '_commands';
-            connection.query('SELECT moderator FROM ' + modTable + ' WHERE moderator = "' + from + '"', function (err, rows, fields) {
-                if (rows[0]) {
-                    var parsedRequest = message.split(' ');
-                    var deletedCommand = parsedRequest[1];
-                    connection.query('SELECT command FROM ' + commandsTable + ' WHERE command = "' + deletedCommand + '" LIMIT 1', function (err, rows, fields) {
+            if (isMod) {
+                var parsedRequest = message.split(' ');
+                var newCommand = parsedRequest[1];
+                var newResponse = parsedRequest.slice(2).join(' ');
+                if (!newCommand.match(/^!/) || !newResponse)
+                    bot.say(to, 'Invalid command format. Must begin with ! and contain a suitable response.');
+                else {
+                    connection.query('SELECT command FROM ' + commandsTable + ' WHERE command = "' + newCommand + '" LIMIT 1', function (err, rows, fields) {
                         if (err)
                             throw err;
                         if (rows[0])
-                            connection.query('DELETE FROM ' + commandsTable + ' WHERE command = "' + deletedCommand + '" LIMIT 1', function (err, rows, fields) {
+                            bot.say(to, 'Command ' + newCommand + ' already exists, ignoring.');
+                        else
+                            connection.query('INSERT INTO ' + commandsTable + ' (command, response) VALUES ("' + newCommand + '","' + newResponse + '")', function (err, rows, fields) {
+                                if (err)
+                                    throw err;
+                                bot.say(to, 'Command ' + newCommand + ' added.');
+                            });
+                    });
+                }
+            }
+            else
+                bot.say(to, 'Sorry, only moderators can add commands.');
+        }
+        else if (message.match(/^!delcom /)) {
+            var commandsTable = to.substring(1) + '_commands';
+            if (isMod) {
+                var parsedRequest = message.split(' ');
+                var deletedCommand = parsedRequest[1];
+                connection.query('SELECT command FROM ' + commandsTable + ' WHERE command = "' + deletedCommand + '" LIMIT 1', function (err, rows, fields) {
+                    if (err)
+                        throw err;
+                    if (rows[0])
+                        connection.query('DELETE FROM ' + commandsTable + ' WHERE command = "' + deletedCommand + '" LIMIT 1', function (err, rows, fields) {
+                            if (err)
+                                throw err;
+                            else
+                                bot.say(to, 'Deleting command ' + deletedCommand + '.');
+                        });
+                    else
+                        bot.say(to, 'Command ' + deletedCommand + ' not found.');
+                });
+            }
+            else
+                bot.say(to, 'Sorry, only moderators can delete commands.');
+        }
+        else if (message.match(/^!editcom /)) {
+            var commandsTable = to.substring(1) + '_commands';
+            if (isMod) {
+                var parsedRequest = message.split(' ');
+                var editCommand = parsedRequest[1];
+                var newResponse = parsedRequest.slice(2).join(' ');
+                if (!parsedRequest[2]) {
+                    bot.say(to, 'Invalid format, please specify a response for the given command.');
+                }
+                else {
+                    connection.query('SELECT command FROM ' + commandsTable + ' WHERE command = "' + editCommand + '" LIMIT 1', function (err, rows, fields) {
+                        if (err)
+                            throw err;
+                        if (rows[0])
+                            connection.query('UPDATE ' + commandsTable + ' SET response = "' + newResponse + '" WHERE command = "' + editCommand + '" LIMIT 1', function (err, rows, fields) {
                                 if (err)
                                     throw err;
                                 else
-                                    bot.say(to, 'Deleting command ' + deletedCommand + '.');
+                                    bot.say(to, 'Updated command ' + editCommand + '.');
                             });
                         else
-                            bot.say(to, 'Command ' + deletedCommand + ' not found.');
+                            bot.say(to, 'Command ' + editCommand + ' not found.');
                     });
                 }
-                else
-                    bot.say(to, 'Sorry, only moderators can delete commands.');
-            });
-        }
-        else if (message.match(/^!editcom /)) {
-            var modTable = to.substring(1) + '_moderators';
-            var commandsTable = to.substring(1) + '_commands';
-            connection.query('SELECT moderator FROM ' + modTable + ' WHERE moderator = "' + from + '"', function (err, rows, fields) {
-                if (rows[0]) {
-                    var parsedRequest = message.split(' ');
-                    var editCommand = parsedRequest[1];
-                    var newResponse = parsedRequest.slice(2).join(' ');
-                    if (!parsedRequest[2]) {
-                        bot.say(to, 'Invalid format, please specify a response for the given command.');
-                    }
-                    else {
-                        connection.query('SELECT command FROM ' + commandsTable + ' WHERE command = "' + editCommand + '" LIMIT 1', function (err, rows, fields) {
-                            if (err)
-                                throw err;
-                            if (rows[0])
-                                connection.query('UPDATE ' + commandsTable + ' SET response = "' + newResponse + '" WHERE command = "' + editCommand + '" LIMIT 1', function (err, rows, fields) {
-                                    if (err)
-                                        throw err;
-                                    else
-                                        bot.say(to, 'Updated command ' + editCommand + '.');
-                                });
-                            else
-                                bot.say(to, 'Command ' + editCommand + ' not found.');
-                        });
-                    }
-                }
-                else {
-                    bot.say(to, 'Sorry, only moderators can edit commands.');
-                }
-            });
+            }
+            else {
+                bot.say(to, 'Sorry, only moderators can edit commands.');
+            }
         }
         else if (message == '!commands') {
             bot.say(to, 'Commands for this channel: http://www.bovinitydivinity.com/commands/' + to.substring(1));
         }
         else if (message.match(/^!topic /)) {
-            var modTable = to.substring(1) + '_moderators';
-            connection.query('SELECT moderator FROM ' + modTable + ' WHERE moderator = "' + from + '"', function (err, rows, fields) {
-                if (rows[0]) {
-                    var parsedRequest = message.split(' ');
-                    var newTopic = parsedRequest.slice(1).join(' ');
-                    connection.query('SELECT auth_key FROM channels WHERE name = "' + to.substring(1) + '" LIMIT 1', function (err, rows, fields) {
-                        if (err)
-                            throw err;
-                        if (rows[0]) {
-                            var options = {
-                                url: 'https://api.twitch.tv/kraken/channels/' + to.substring(1) + '?channel[status]=' + newTopic + '&_method=put&oauth_token=' + rows[0]['auth_key'],
-                                method: 'get'
-                            };
-                            request(options, function (error, response, body) {
-                                if (error)
-                                    console.log(error);
-                            });
-                            bot.say(to, from + ': Channel Topic Updated.');
-                        }
-                    });
-                }
-                else {
-                    bot.say(to, 'Sorry, only moderators can change the stream topic.');
-                }
-            });
+            if (isMod) {
+                var parsedRequest = message.split(' ');
+                var newTopic = parsedRequest.slice(1).join(' ');
+                connection.query('SELECT auth_key FROM channels WHERE name = "' + to.substring(1) + '" LIMIT 1', function (err, rows, fields) {
+                    if (err)
+                        throw err;
+                    if (rows[0]) {
+                        var options = {
+                            url: 'https://api.twitch.tv/kraken/channels/' + to.substring(1) + '?channel[status]=' + newTopic + '&_method=put&oauth_token=' + rows[0]['auth_key'],
+                            method: 'get'
+                        };
+                        request(options, function (error, response, body) {
+                            if (error)
+                                console.log(error);
+                        });
+                        bot.say(to, from + ': Channel Topic Updated.');
+                    }
+                });
+            }
+            else {
+                bot.say(to, 'Sorry, only moderators can change the stream topic.');
+            }
         }
         else if (message.match(/^!game /)) {
-            var modTable = to.substring(1) + '_moderators';
-            connection.query('SELECT moderator FROM ' + modTable + ' WHERE moderator = "' + from + '"', function (err, rows, fields) {
-                if (rows[0]) {
-                    var parsedRequest = message.split(' ');
-                    var newGame = parsedRequest.slice(1).join(' ');
-                    connection.query('SELECT auth_key FROM channels WHERE name = "' + to.substring(1) + '" LIMIT 1', function (err, rows, fields) {
-                        if (err)
-                            throw err;
-                        if (rows[0]) {
-                            var options = {
-                                url: 'https://api.twitch.tv/kraken/channels/' + to.substring(1) + '?channel[game]=' + newGame + '&_method=put&oauth_token=' + rows[0]['auth_key'],
-                                method: 'get'
-                            };
-                            request(options, function (error, response, body) {
-                                if (error)
-                                    console.log(error);
-                            });
-                            bot.say(to, from + ': Channel Game Updated.');
-                        }
-                    });
-                }
-                else {
-                    bot.say(to, 'Sorry, only moderators can change the stream game.');
-                }
-            });
+            if (isMod) {
+                var parsedRequest = message.split(' ');
+                var newGame = parsedRequest.slice(1).join(' ');
+                connection.query('SELECT auth_key FROM channels WHERE name = "' + to.substring(1) + '" LIMIT 1', function (err, rows, fields) {
+                    if (err)
+                        throw err;
+                    if (rows[0]) {
+                        var options = {
+                            url: 'https://api.twitch.tv/kraken/channels/' + to.substring(1) + '?channel[game]=' + newGame + '&_method=put&oauth_token=' + rows[0]['auth_key'],
+                            method: 'get'
+                        };
+                        request(options, function (error, response, body) {
+                            if (error)
+                                console.log(error);
+                        });
+                        bot.say(to, from + ': Channel Game Updated.');
+                    }
+                });
+            }
+            else {
+                bot.say(to, 'Sorry, only moderators can change the stream game.');
+            }
         }
         else {
             var currentChannel = to.substring(1) + '_commands';
@@ -621,6 +551,7 @@ io.on('connection', function (socket) {
     });
 });
 
+// Header Controls
 app.all('*', function (req, res, next) {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Headers", "X-Requested-With");
@@ -636,97 +567,99 @@ app.get('*', function (req, res, next) {
     }
 });
 
+// Post Handlers
 app.post('/', function (req, res) {
-    var userSession = req.session;
-    if (req.body.op == "login") {
-        function getHashValue(key) {
-            var matches = req.body.clientHash.match(new RegExp(key + '=([^&]*)'));
-            return matches ? matches[1] : null;
-        }
-        var hash = getHashValue('access_token');
-        request('https://api.twitch.tv/kraken?oauth_token=' + hash, function (error, response, body) {
-            if (!error && response.statusCode == 200) {
-                var output = JSON.parse(body);
-                var userSession = req.session;
-                userSession.user = output['token']['user_name'];
-                console.log('Website Login. User:' + userSession.user + ' - Auth_key:' + hash);
-                connection.query('INSERT INTO channels (name, auth_key) VALUES ("' + userSession.user + '", "' + hash + '") ON DUPLICATE KEY UPDATE auth_key = "' + hash + '"', function (err, rows, fields) {
-                    res.end('done');
-                });
+    switch (req.body.op) {
+        case 'login':
+            function getHashValue(key) {
+                var matches = req.body.clientHash.match(new RegExp(key + '=([^&]*)'));
+                return matches ? matches[1] : null;
             }
-        });
-    }
-    else if (req.body.op == 'functions') {
-        var channel = userSession.user;
-        var hsStatus = req.body.hearthstone;
-        var csStatus = req.body.csgo;
-        var lolStatus = req.body.league;
-        connection.query('UPDATE channels SET league = "' + lolStatus + '" WHERE name = "' + channel + '" LIMIT 1', function (err, rows, fields) {
-            connection.query('UPDATE channels SET csgo = "' + csStatus + '" WHERE name = "' + channel + '" LIMIT 1', function (err, rows, fields) {
-                connection.query('UPDATE channels SET hearthstone = "' + hsStatus + '" WHERE name = "' + channel + '" LIMIT 1', function (err, rows, fields) {
-                    res.end('done');
+            var hash = getHashValue('access_token');
+            request('https://api.twitch.tv/kraken?oauth_token=' + hash, function (error, response, body) {
+                if (!error && response.statusCode == 200) {
+                    var output = JSON.parse(body);
+                    req.session.user = output['token']['user_name'];
+                    console.log('Website Login. User:' + req.session.user + ' - Auth_key:' + hash);
+                    connection.query('INSERT INTO channels (name, auth_key) VALUES ("' + req.session.user + '", "' + hash + '") ON DUPLICATE KEY UPDATE auth_key = "' + hash + '"', function (err, rows, fields) {
+                        checkTables(req.session.user, connection);
+                        res.end('done');
+                    });
+                }
+            });
+            break;
+        case 'functions':
+            connection.query('UPDATE channels SET league = "' + req.body.league + '" WHERE name = "' + req.session.user + '" LIMIT 1', function (err, rows, fields) {
+                connection.query('UPDATE channels SET csgo = "' + req.body.csgo + '" WHERE name = "' + req.session.user + '" LIMIT 1', function (err, rows, fields) {
+                    connection.query('UPDATE channels SET hearthstone = "' + req.body.hearthstone + '" WHERE name = "' + req.session.user + '" LIMIT 1', function (err, rows, fields) {
+                        res.end('done');
+                    });
                 });
             });
-        });
-    }
-    else if (req.body.op == 'deleteCommand') {
-        var command = req.body.command;
-        var channel = userSession.user;
-        var commandsTable = userSession.user + '_commands';
-        connection.query('DELETE FROM ' + commandsTable + ' WHERE command = "' + command + '" LIMIT 1', function (err, rows, fields) {
-            if (err)
-                throw err;
-            res.end('done');
-        });
-    }
-    else if (req.body.op == 'editCommand') {
-        var command = req.body.command;
-        var response = req.body.response;
-        var channel = userSession.user;
-        var commandsTable = userSession.user + '_commands';
-        connection.query('UPDATE ' + commandsTable + ' SET response = "' + response + '" WHERE command = "' + command + '" LIMIT 1', function (err, rows, fields) {
-            if (err)
-                throw err;
-            res.end('done');
-        });
-    }
-    else if (req.body.op == 'addTimer') {
-        var announcement = req.body.announcement;
-        var delay = req.body.delay;
-        var channel = userSession.user;
-        connection.query('INSERT INTO timers (response, timer, channel) VALUES ("' + announcement + '", "' + delay + '", "' + channel + '")', function (err, rows, fields) {
-            if (err)
-                throw err;
-            res.end('done');
-        });
-    }
-    else if (req.body.op == 'deleteTimer') {
-        var timerID = req.body.timerID;
-        connection.query('DELETE FROM timers WHERE ID = "' + timerID + '"', function (err, rows, fields) {
-            if (err)
-                throw err;
-            res.end('done');
-        });
-    }
-    else if (req.body.op == 'join') {
-        bot.join('#' + req.body.channel, function () {
-            var channelList = Object.keys(bot.chans);
-            if (channelList.indexOf('#' + userSession.user) != -1)
-                var botStatus = 'is';
-            else
-                var botStatus = 'is not';
-            console.log('Channel Join Request: ' + req.body.channel);
-            res.send({ msg: botStatus });
-            res.end('done');
-        });
-    }
-    else if (req.body.op == 'part') {
-        bot.part('#' + req.body.channel, function () {
-            var channelList = Object.keys(bot.chans);
-            console.log('Channel Part Request: ' + req.body.channel);
-            res.send({ msg: 'is not' });
-            res.end('done');
-        });
+            break;
+        case 'deleteCommand':
+            var commandsTable = userSession.user + '_commands';
+            connection.query('DELETE FROM ' + commandsTable + ' WHERE command = "' + req.body.command + '" LIMIT 1', function (err, rows, fields) {
+                if (err)
+                    throw err;
+                res.end('done');
+            });
+            break;
+        case 'editCommand':
+            var commandsTable = userSession.user + '_commands';
+            connection.query('UPDATE ' + commandsTable + ' SET response = "' + req.body.response + '" WHERE command = "' + req.body.command + '" LIMIT 1', function (err, rows, fields) {
+                if (err)
+                    throw err;
+                res.end('done');
+            });
+            break;
+        case 'addTimer':
+            connection.query('INSERT INTO timers (response, timer, channel) VALUES ("' + req.body.announcement + '", "' + req.body.delay + '", "' + userSession.user + '")', function (err, rows, fields) {
+                if (err)
+                    throw err;
+                res.end('done');
+            });
+            break;
+        case 'deleteTimer':
+            connection.query('DELETE FROM timers WHERE ID = "' + req.body.timerID + '"', function (err, rows, fields) {
+                if (err)
+                    throw err;
+                res.end('done');
+            });
+            break;
+        case 'join':
+            bot.join('#' + req.body.channel, function () {
+                var channelList = Object.keys(bot.chans);
+                if (channelList.indexOf('#' + userSession.user) != -1)
+                    var botStatus = 'is';
+                else
+                    var botStatus = 'is not';
+                console.log('Channel Join Request: ' + req.body.channel);
+                res.send({ msg: botStatus });
+                res.end('done');
+            });
+            break;
+        case 'part':
+            bot.part('#' + req.body.channel, function () {
+                console.log('Channel Part Request: ' + req.body.channel);
+                res.send({ msg: 'is not' });
+                res.end('done');
+            });
+            break;
+        case 'addIssue':
+            connection.query('INSERT INTO issues (issue) VALUES ("' + req.body.issue + '")', function (err, rows, fields) {
+                if (err)
+                    throw err;
+                res.end('done');
+            });
+            break;
+        case 'resolveIssue':
+            connection.query('DELETE FROM issues WHERE id = "' + req.body.id + '"', function (err, rows, fields) {
+                if (err)
+                    throw err;
+                res.end('done');
+            });
+            break;
     }
 });
 
@@ -741,24 +674,47 @@ app.get('/draw/:channel/drawframe.html', function (req, res) {
     res.render('drawframe.ejs');
 });
 
-// Public Commands Page, no user session.
+// Public Pages, no user session.
 app.get('/commands/:channel', function (req, res) {
     var tableName = req.params.channel + '_commands';
-    var channel = req.params.channel;
-    connection.query('SELECT response, timer FROM timers WHERE channel = "' + channel + '"', function (err, timers, fields) {
+    connection.query('SELECT response, timer FROM timers WHERE channel = "' + req.params.channel + '"', function (err, timers, fields) {
         connection.query('SELECT command, response FROM ' + tableName, function (err, commands, fields) {
-            res.render('commandsPublic.ejs', { channel: channel, commands: commands, timers: timers });
+            res.render('commandsPublic.ejs', { channel: req.params.channel, commands: commands, timers: timers });
         });
     });
 });
 
+app.get('/about', function (req, res) {
+    res.render('about.ejs', { channel: req.session.user });
+});
+
+app.get('/issues', function (req, res) {
+    connection.query('SELECT * FROM issues', function (err, rows, fields) {
+        res.render('issues.ejs', { issues: rows });
+    });
+});
+
+// User config pages requiring a login session.
+app.get('/dashboard', function (req, res) {
+    if (req.session.user) {
+        var channelList = Object.keys(bot.chans);
+        if (channelList.indexOf('#' + req.session.user) != -1)
+            var botStatus = 'is';
+        else
+            var botStatus = 'is not';
+        res.render('dashboard.ejs', { channel: req.session.user, status: botStatus });
+        res.end('done');
+    }
+    else
+        res.render('index.ejs', { clientid: auth.clientid, sessionName: '' });
+});
+
 app.get('/commands', function (req, res) {
     if (req.session.user) {
-        var userSession = req.session;
-        var tableName = userSession.user + '_commands';
-        connection.query('SELECT id, response, timer FROM timers WHERE channel ="' + userSession.user + '"', function (err, timers, fields) {
+        var tableName = req.session.user + '_commands';
+        connection.query('SELECT id, response, timer FROM timers WHERE channel ="' + req.session.user + '"', function (err, timers, fields) {
             connection.query('SELECT command, response FROM ' + tableName, function (err, commands, fields) {
-                res.render('commands.ejs', { channel: userSession.user, commands: commands, timers: timers });
+                res.render('commands.ejs', { channel: req.session.user, commands: commands, timers: timers });
             });
         });
     }
@@ -768,9 +724,8 @@ app.get('/commands', function (req, res) {
 
 app.get('/viewers', function (req, res) {
     if (req.session.user) {
-        var userSession = req.session;
-        connection.query('SELECT viewer, credits FROM ' + userSession.user + '_viewers ORDER BY credits DESC', function (err, rows, fields) {
-            res.render('viewers.ejs', { channel: userSession.user, viewers: rows });
+        connection.query('SELECT viewer, credits FROM ' + req.session.user + '_viewers ORDER BY credits DESC', function (err, rows, fields) {
+            res.render('viewers.ejs', { channel: req.session.user, viewers: rows });
         });
     }
     else
@@ -779,34 +734,13 @@ app.get('/viewers', function (req, res) {
 
 app.get('/functions', function (req, res) {
     if (req.session.user) {
-        var userSession = req.session;
-        connection.query('SELECT hearthstone FROM channels WHERE name = "' + userSession.user + '"', function (err, hearthstone, fields) {
-            connection.query('SELECT csgo FROM channels WHERE name = "' + userSession.user + '"', function (err, csgo, fields) {
-                connection.query('SELECT league FROM channels WHERE name = "' + userSession.user + '"', function (err, league, fields) {
-                    res.render('functions.ejs', { channel: userSession.user, hearthstone: hearthstone[0]['hearthstone'], csgo: csgo[0]['csgo'], league: league[0]['league'] });
+        connection.query('SELECT hearthstone FROM channels WHERE name = "' + req.session.user + '"', function (err, hearthstone, fields) {
+            connection.query('SELECT csgo FROM channels WHERE name = "' + req.session.user + '"', function (err, csgo, fields) {
+                connection.query('SELECT league FROM channels WHERE name = "' + req.session.user + '"', function (err, league, fields) {
+                    res.render('functions.ejs', { channel: req.session.user, hearthstone: hearthstone[0]['hearthstone'], csgo: csgo[0]['csgo'], league: league[0]['league'] });
                 });
             });
         });
-    }
-    else
-        res.render('index.ejs', { clientid: auth.clientid, sessionName: '' });
-});
-
-app.get('/about', function (req, res) {
-    var userSession = req.session;
-    res.render('about.ejs', { channel: userSession.user });
-});
-
-app.get('/dashboard', function (req, res) {
-    if (req.session.user) {
-        var userSession = req.session;
-        var channelList = Object.keys(bot.chans);
-        if (channelList.indexOf('#' + userSession.user) != -1)
-            var botStatus = 'is';
-        else
-            var botStatus = 'is not';
-        res.render('dashboard.ejs', { channel: userSession.user, status: botStatus });
-        res.end('done');
     }
     else
         res.render('index.ejs', { clientid: auth.clientid, sessionName: '' });
@@ -817,14 +751,32 @@ app.get('/logout', function (req, res) {
     res.render('logout.ejs', {});
 });
 
+// API Routes
+app.get('/api/:table', function (req, res) {
+    connection.query('SHOW TABLES LIKE "' + req.params.table + '"', function (err, rows, fields) {
+        if (err)
+            throw err;
+        if (!rows[0])
+            res.send('Error: Database Table Not Found');
+        else {
+            connection.query('SELECT * FROM ' + req.params.table, function (err, rows, fields) {
+                if (err)
+                    throw err;
+                if (rows[0])
+                    res.send(rows);
+            });
+        }
+    });
+});
+
+// Final catch-all routing to prevent 404's
 app.get('*', function (req, res) {
-    var userSession = req.session;
-    res.render('404.ejs', { status: 404, url: req.url });
+    res.redirect(301, "http://www.bovinitydivinity.com");
 });
 // End Web Interface
 
 //Cleaning up on exit
-//process.stdin.resume();
+process.stdin.resume();
 function exitHandler(options, err) {
     connection.end();
     if (options.cleanup)
@@ -838,3 +790,4 @@ function exitHandler(options, err) {
 process.on('exit', exitHandler.bind(null, { cleanup: true }));
 process.on('SIGINT', exitHandler.bind(null, { exit: true }));
 process.on('uncaughtException', exitHandler.bind(null, { exit: true }));
+// End Web Interface
