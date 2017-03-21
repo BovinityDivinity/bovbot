@@ -24,6 +24,10 @@ A simple Twitch chatbot developed for BinnieTV as a Node practice project. Using
 
 !8ball [question] - Ask the Magic 8-Ball a question!
 
+!currency - Returns the amount of currency user has.
+
+!bet [amount] - Bets [amount] of currency, rolling against the minmum roll value set by the streamer. 
+
 ## External APIs
 
 BovBot is not (yet) capable of accessing arbitrary APIs via user commands. However, there are some built-in commands that connect to external APIs. These commands can all be enabled or disabled via the control panel. 
