@@ -44,7 +44,7 @@ Currently, BovBot supports the addition of timers that are executed on a given i
 
 ## Viewer Tracking
 
-Every 15 minutes, BovBot currently takes a survey of all viewers in each channel that it is present in and awards "currency" to said viewers. Currently this tracking and currency has no usage beyond the list of viewers (which can be viewed on the BovBot admin site) but in the future will be used for determining which viewers are 'regulars', the threshold after which a viewer is allowed to post links, the ability to weight viewers entries into giveaways if desired, or the spending of currency for giveaways. 
+Every 15 minutes, BovBot currently takes a survey of all viewers in each channel that it is present in and awards "currency" to said viewers. Currently this tracking and currency can be viewed on the BovBot admin site and can be used by viewers to "bet" in chat. In the future currency will be used for determining which viewers are 'regulars', the threshold after which a viewer is allowed to post links, the ability to weight viewers entries into giveaways if desired, or the spending of currency for giveaways. 
 
 ## Spam Filter
 
