@@ -1,5 +1,6 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -28,6 +29,7 @@
 
     </script>
 </head>
+
 <body>
     <div id="wrapper">
         <!-- Navigation -->
@@ -55,7 +57,7 @@
             </ul>
             <!-- Sidebar Menu Items - These collapse to the responsive navigation menu on small screens -->
             <% include html/include/sidebar %>
-            <!-- /.navbar-collapse -->
+                <!-- /.navbar-collapse -->
         </nav>
         <div id="page-wrapper">
             <div class="container-fluid">
@@ -67,7 +69,7 @@
                         </h1>
                         <ol class="breadcrumb">
                             <li>
-                                <i class="fa fa-dashboard"></i>  <a href="/dashboard">Dashboard</a>
+                                <i class="fa fa-dashboard"></i> <a href="/dashboard">Dashboard</a>
                             </li>
                             <li class="active">
                                 <i class="fa fa-file"></i> Functions
@@ -75,17 +77,59 @@
                         </ol>
                         <div id="contentDiv">
                             <table class="table table-bordered table-hover table-striped">
-                                <tr><th colspan="2">Chat Moderation Functions</th></tr>
-                                <tr><th>Function</th><th>Enabled</th></tr>
-                                <tr><td>Enable Link Protection</td><td>NYI</td></tr>
-                                <tr><td>Allow "regular" viewers to post links</td><td>NYI</td></tr>
+                                <tr>
+                                    <th colspan="2">Chat Moderation Functions</th>
+                                </tr>
+                                <tr>
+                                    <th>Function</th>
+                                    <th>Enabled</th>
+                                </tr>
+                                <tr>
+                                    <td>Enable Link Protection</td>
+                                    <td>NYI</td>
+                                </tr>
+                                <tr>
+                                    <td>Allow "regular" viewers to post links</td>
+                                    <td>NYI</td>
+                                </tr>
                             </table>
                             <table class="table table-bordered table-hover table-striped">
-                                <tr><th colspan="2">Game-Related Functions</th></tr>
-                                <tr><th>Function</th><th>Enabled</th></tr>
-                                <tr><td>Allow usage of Hearthstone related commands (!hs)</td><td><input type="checkbox" id="hsCheck" /></td></tr>
-                                <tr><td>Allow usage of CS:GO related commands (!skin)</td><td><input type="checkbox" id="csCheck" /></td></tr>
-                                <tr><td>Allow usage of League of Legends related commands (!champion)</td><td><input type="checkbox" id="lolCheck" /></td></tr>
+                                <tr>
+                                    <th colspan="2">Game-Related Functions</th>
+                                </tr>
+                                <tr>
+                                    <th>Function</th>
+                                    <th>Enabled</th>
+                                </tr>
+                                <tr>
+                                    <td>Allow usage of Hearthstone related commands (!hs)</td>
+                                    <td><input type="checkbox" id="hsCheck" /></td>
+                                </tr>
+                                <tr>
+                                    <td>Allow usage of CS:GO related commands (!skin)</td>
+                                    <td><input type="checkbox" id="csCheck" /></td>
+                                </tr>
+                                <tr>
+                                    <td>Allow usage of League of Legends related commands (!champion)</td>
+                                    <td><input type="checkbox" id="lolCheck" /></td>
+                                </tr>
+                            </table>                           
+                            <table class="table table-bordered table-hover table-striped">
+                                <tr>
+                                    <th colspan="2">Currency-Related Functions</th>
+                                </tr>
+                                <tr>
+                                    <th>Function</th>
+                                    <th>Value</th>
+                                </tr>
+                                <tr>
+                                    <td>Currency Name</td>
+                                    <td><input type="text" id="currencyName" value="<%= currencyName %>"/></td>
+                                </tr>
+                                <tr>
+                                    <td>Winning Bet Threshold</td>
+                                    <td><input type="range" min="1" max="100" id="betValue" /><br /><span id="betDisplay"><%= minRoll %></span></td>                                    
+                                </tr>                                
                             </table>
                             <button class="btn btn-lg btn-primary" id="gameSubmit" onclick="submitFunctions()">Save Changes</button>
                         </div>
@@ -102,21 +146,30 @@
         <!-- Bootstrap Core JavaScript -->
         <script src="js/bootstrap.min.js"></script>
         <script>
-            $(function ()
-            {
-                    if ('<%= hearthstone %>' == 'enable')
-                        document.getElementById('hsCheck').checked = 'true';
-                    if ('<%= csgo %>' == 'enable')
-                        document.getElementById('csCheck').checked = 'true';
-                    if ('<%= league %>' == 'enable')
-                        document.getElementById('lolCheck').checked = 'true';
+            $(function () {
+                if ('<%= hearthstone %>' == 'enable')
+                    document.getElementById('hsCheck').checked = 'true';
+                if ('<%= csgo %>' == 'enable')
+                    document.getElementById('csCheck').checked = 'true';
+                if ('<%= league %>' == 'enable')
+                    document.getElementById('lolCheck').checked = 'true';          
+                $("#betValue").val(<%= minRoll %>); 
             });
 
-            function submitFunctions()
-            {
+            $("#betValue").change(function () {
+                $("#betDisplay").text($("#betValue").val());
+            });
+
+            function submitFunctions() {
                 var hsStatus;
                 var csStatus;
                 var lolStatus;
+                var minRoll;
+                var currencyName;
+
+                minRoll = $("#betValue").val();
+                currencyName = $("#currencyName").val();
+
                 if (document.getElementById('hsCheck').checked)
                     hsStatus = 'enable';
                 else
@@ -132,12 +185,12 @@
                 else
                     lolStatus = 'disable';
 
-                $.post("http://www.bovinitydivinity.com", { clientHash: location.hash, op: 'functions', hearthstone: hsStatus, csgo: csStatus, league: lolStatus }, function (data)
-                {
+                $.post("http://www.bovinitydivinity.com", { clientHash: location.hash, op: 'functions', hearthstone: hsStatus, csgo: csStatus, league: lolStatus, minRoll: minRoll, currencyName: currencyName }, function (data) {
                     if (data == 'done')
                         location.reload();
                 });
             }
         </script>
 </body>
+
 </html>
