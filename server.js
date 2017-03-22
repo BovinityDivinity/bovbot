@@ -2,12 +2,12 @@ var auth = require('./auth');
 var request = require('request');
 var DB = require('mysql');
 var irc = require('irc');
-var ircMsg = require('irc-message').parse;
 var checkTables = require('./checkTables');
 
 function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
+
 
 //Database Connection
 var connection = DB.createPool({
@@ -50,6 +50,11 @@ bot.addListener('join', function (channel, nick) {
     }
 });
 
+// Raw Data Dump for Debugging
+/*bot.addListener('raw', function (message) { 
+    console.log(message);
+});*/
+
 bot.addListener('notice', function (nick, to, text, message) {
     console.log(message);
 });
@@ -57,27 +62,84 @@ bot.addListener('notice', function (nick, to, text, message) {
 // Handler for Chat Messages
 bot.addListener('message', function (from, to, message, userType) {
     var isMod = false;
+    var channel = to.substring(1);
 
     if (userType == 'mod' || from.toLowerCase() == to.substring(1))
         isMod = true;
+
+    if (message.match(/[^\w\s!?.]{10,}/g)) {
+        if (!isMod) {
+            console.log('ASCII Spam Detected: Not Moderator. Message: ' + message);
+            bot.say(to, 'Timed out ' + from + ' for ascii spam (5 min).');
+            bot.say(to, '.timeout ' + from + ' 300');
+        }
+    }
+
+    message = message.replace(/[`~@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '');
 
     connection.query('INSERT INTO ' + to.substring(1) + '_chatlog (viewer, text) VALUES ("' + from + '","' + message + '")', function (err, rows, fields) {
         if (err)
             throw err;
     });
 
-    if (message.match(/[^\w\s!?.]{10,}/g)) {
-        if (isMod) {
-            console.log('User is a moderator');
-        }
-        else {
-            console.log('ASCII Spam Detected: Not Moderator. Message: ' + message);
-            bot.say(to, 'Timed out ' + from + ' for ascii spam (5 min).');
-            bot.say(to, '.timeout ' + from + ' 300');
-        }
-    }
     if (message.match(/^!/)) {
-        if (message == '!giveaway') {
+        if (message == '!currency') {
+            connection.query('SELECT credits FROM ' + channel + '_viewers WHERE viewer = "' + from + '" UNION SELECT currencyName FROM channels WHERE name = "' + channel + '"', function (err, rows, fields) {
+                if (err)
+                    throw err;
+                if (rows[0])
+                    bot.say(to, from + ' currently has ' + rows[0]['credits'] + ' ' + rows[1]['credits'] + '.');
+                else
+                    bot.say(to, 'Viewer ' + from + ' not found. (No currency yet?)');
+            });
+        }
+        else if (message.match(/^!bet /)) {
+            var parsedRequest = message.split(' ');
+            var credits;
+            var roll;
+            var currencyName;
+            if (parsedRequest[1]) {
+                parsedRequest[1] = Number(parsedRequest[1]);
+                if (!isNaN(parsedRequest[1])) {
+                    connection.query('SELECT credits FROM ' + channel + '_viewers WHERE viewer = "' + from + '" UNION SELECT currencyName FROM channels WHERE name = "' + channel + '" UNION SELECT minRoll FROM channels WHERE name = "' + channel + '"', function (err, rows, fields) {
+                        if (err)
+                            throw err;
+                        if (rows[0]) {
+                            credits = rows[0]['credits'];
+                            currencyName = rows[1]['credits'];
+                            minRoll = rows[2]['credits'];
+                            if (parsedRequest[1] > credits) {
+                                bot.say(to, from + ': You do not have that much currency to gamble.');
+                            }
+                            else {
+                                roll = getRandomInt(1, 100);
+                                if (roll <= minRoll) {
+                                    credits = credits - parsedRequest[1];
+                                    connection.query('UPDATE ' + channel + '_viewers SET credits = ' + credits + ' WHERE viewer = "' + from + '"', function (err, rows, fields) {
+                                        if (err)
+                                            throw err;
+                                        bot.say(to, from + ' rolled a ' + roll + '. Lost ' + parsedRequest[1] + ' ' + currencyName + ' and now has ' + credits + ' ' + currencyName + ' remaining.');
+                                    });
+                                }
+                                else {
+                                    credits = Number(credits) + Number(parsedRequest[1]);
+                                    connection.query('UPDATE ' + channel + '_viewers SET credits = ' + credits + ' WHERE viewer = "' + from + '"', function (err, rows, fields) {
+                                        if (err)
+                                            throw err;
+                                        bot.say(to, from + ' rolled a ' + roll + '. Won ' + parsedRequest[1] + ' ' + currencyName + ' and now has ' + credits + ' ' + currencyName + ' remaining.');
+                                    });
+                                }
+                            }
+                        }
+                    });
+                }
+                else
+                    bot.say(to, from + ": Invalid Bet.");
+            }
+            else
+                bot.say(to, from + ": Invalid Bet.");
+        }
+        else if (message == '!giveaway') {
             if (from == to.substring(1)) {
                 bot.say(to, 'Giveaway Time!');
                 connection.query('SELECT viewer FROM ' + to.substring(1) + '_chatlog ORDER BY RAND() LIMIT 1', function (err, rows, fields) {
@@ -89,7 +151,7 @@ bot.addListener('message', function (from, to, message, userType) {
             else
                 bot.say(to, 'Only the broadcaster decides when to do a giveaway.');
         }
-        if (message == '!uptime') {
+        else if (message == '!uptime') {
             request('https://api.twitch.tv/kraken/streams/' + to.substring(1) + '?oauth_token=' + auth.oauth.substring(6), function (error, response, body) {
                 if (!error && response.statusCode == 200) {
                     var output = JSON.parse(body);
@@ -368,14 +430,12 @@ bot.addListener('message', function (from, to, message, userType) {
         }
         else if (message.match(/^!topic /)) {
             if (isMod) {
-                var parsedRequest = message.split(' ');
-                var newTopic = parsedRequest.slice(1).join(' ');
                 connection.query('SELECT auth_key FROM channels WHERE name = "' + to.substring(1) + '" LIMIT 1', function (err, rows, fields) {
                     if (err)
                         throw err;
                     if (rows[0]) {
                         var options = {
-                            url: 'https://api.twitch.tv/kraken/channels/' + to.substring(1) + '?channel[status]=' + newTopic + '&_method=put&oauth_token=' + rows[0]['auth_key'],
+                            url: 'https://api.twitch.tv/kraken/channels/' + to.substring(1) + '?channel[status]=' + message.substr(message.indexOf(" ") + 1) + '&_method=put&oauth_token=' + rows[0]['auth_key'],
                             method: 'get'
                         };
                         request(options, function (error, response, body) {
@@ -392,14 +452,12 @@ bot.addListener('message', function (from, to, message, userType) {
         }
         else if (message.match(/^!game /)) {
             if (isMod) {
-                var parsedRequest = message.split(' ');
-                var newGame = parsedRequest.slice(1).join(' ');
                 connection.query('SELECT auth_key FROM channels WHERE name = "' + to.substring(1) + '" LIMIT 1', function (err, rows, fields) {
                     if (err)
                         throw err;
                     if (rows[0]) {
                         var options = {
-                            url: 'https://api.twitch.tv/kraken/channels/' + to.substring(1) + '?channel[game]=' + newGame + '&_method=put&oauth_token=' + rows[0]['auth_key'],
+                            url: 'https://api.twitch.tv/kraken/channels/' + to.substring(1) + '?channel[game]=' + message.substr(message.indexOf(" ") + 1) + '&_method=put&oauth_token=' + rows[0]['auth_key'],
                             method: 'get'
                         };
                         request(options, function (error, response, body) {
@@ -422,26 +480,28 @@ bot.addListener('message', function (from, to, message, userType) {
                     throw err;
                 if (rows[0]) {
                     if (rows[0].response.indexOf('$(random)') != -1) {
-                        var randomUser;
-                        var userList = Object.keys(bot.chans[to].users);
-                        var index = getRandomInt(0, userList.length - 1);
-                        randomUser = userList[index];
-                        rows[0].response = rows[0].response.replace('$(random)', randomUser);
-                    }
-                    if (rows[0].response.indexOf('$(user)') != -1)
-                        rows[0].response = rows[0].response.replace('$(user)', from);
-                    if (rows[0].response.match(/\$\([0-9]\)/g)) {
-                        if ((commandArray.length - 1) == rows[0].response.match(/\$\([0-9]\)/g).length) {
-                            for (var i = 1; i < commandArray.length; i++) {
-                                rows[0].response = rows[0].response.replace('$(' + i + ')', commandArray[i]);
+                        request('https://tmi.twitch.tv/group/user/' + to.substring(1) + '/chatters', function (error, response, body) {
+                            if (!error && response.statusCode == 200) {
+                                var output = JSON.parse(body);
+                                var combinedArray = output['chatters']['moderators'].concat(output['chatters']['viewers']);
+                                rows[0].response = rows[0].response.replace('$(random)', combinedArray[getRandomInt(0, combinedArray.length - 1)]);
                             }
-                            bot.say(to, rows[0].response);
-                        }
-                        else
-                            bot.say(to, 'Invalid number of parameters.');
+                            if (rows[0].response.indexOf('$(user)') != -1)
+                                rows[0].response = rows[0].response.replace('$(user)', from);
+                            if (rows[0].response.match(/\$\([0-9]\)/g)) {
+                                if ((commandArray.length - 1) == rows[0].response.match(/\$\([0-9]\)/g).length) {
+                                    for (var i = 1; i < commandArray.length; i++) {
+                                        rows[0].response = rows[0].response.replace('$(' + i + ')', commandArray[i]);
+                                    }
+                                    bot.say(to, rows[0].response);
+                                }
+                                else
+                                    bot.say(to, 'Invalid number of parameters.');
+                            }
+                            else
+                                bot.say(to, rows[0].response);
+                        });
                     }
-                    else
-                        bot.say(to, rows[0].response);
                 }
             });
         }
@@ -520,8 +580,9 @@ function trackViewers() {
         })(i);
     }
 }
-
+//////////////////////
 // Begin Web interface
+//////////////////////
 var express = require('express');
 var app = express();
 var server = require('http').Server(app);
@@ -553,17 +614,23 @@ io.on('connection', function (socket) {
 
 // Header Controls
 app.all('*', function (req, res, next) {
-    res.header("Access-Control-Allow-Origin", "*");
-    res.header("Access-Control-Allow-Headers", "X-Requested-With");
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With');
+    res.setHeader('Surrogate-Control', 'no-store')
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    res.setHeader('Pragma', 'no-cache')
+    res.setHeader('Expires', '0')
     next();
 });
 
 app.get('*', function (req, res, next) {
-    if (req.headers.host.slice(0, 3) != 'www') {
-        res.redirect(301, 'http://www.' + req.headers.host + req.url);
-    }
-    else {
-        next();
+    if (req.headers.host) {
+        if (req.headers.host != 'www.bovinitydivinity.com') {
+            res.redirect(301, 'http://www.bovinitydivinity.com' + req.url);
+        }
+        else {
+            next();
+        }
     }
 });
 
@@ -589,12 +656,10 @@ app.post('/', function (req, res) {
             });
             break;
         case 'functions':
-            connection.query('UPDATE channels SET league = "' + req.body.league + '" WHERE name = "' + req.session.user + '" LIMIT 1', function (err, rows, fields) {
-                connection.query('UPDATE channels SET csgo = "' + req.body.csgo + '" WHERE name = "' + req.session.user + '" LIMIT 1', function (err, rows, fields) {
-                    connection.query('UPDATE channels SET hearthstone = "' + req.body.hearthstone + '" WHERE name = "' + req.session.user + '" LIMIT 1', function (err, rows, fields) {
-                        res.end('done');
-                    });
-                });
+            connection.query('UPDATE channels SET league = "' + req.body.league + '", csgo = "' + req.body.csgo + '", hearthstone = "' + req.body.hearthstone + '", currencyName = "' + req.body.currencyName + '", minRoll = "' + req.body.minRoll + '" WHERE name = "' + req.session.user + '" LIMIT 1', function (err, rows, fields) {
+                if (err)
+                    throw err;
+                res.end('done');
             });
             break;
         case 'deleteCommand':
@@ -663,12 +728,6 @@ app.post('/', function (req, res) {
     }
 });
 
-app.get('/', function (req, res) {
-    console.log('Website Client Connection. IP: ' + req.connection.remoteAddress);
-    console.log('User-Agent: ' + req.headers['user-agent'] + '\n');
-    res.render('index.ejs', { clientid: auth.clientid, sessionName: req.session.user });
-});
-
 // The Draw Webpage.
 app.get('/draw/:channel/drawframe.html', function (req, res) {
     res.render('drawframe.ejs');
@@ -734,16 +793,24 @@ app.get('/viewers', function (req, res) {
 
 app.get('/functions', function (req, res) {
     if (req.session.user) {
-        connection.query('SELECT hearthstone FROM channels WHERE name = "' + req.session.user + '"', function (err, hearthstone, fields) {
-            connection.query('SELECT csgo FROM channels WHERE name = "' + req.session.user + '"', function (err, csgo, fields) {
-                connection.query('SELECT league FROM channels WHERE name = "' + req.session.user + '"', function (err, league, fields) {
-                    res.render('functions.ejs', { channel: req.session.user, hearthstone: hearthstone[0]['hearthstone'], csgo: csgo[0]['csgo'], league: league[0]['league'] });
-                });
-            });
+        connection.query('SELECT hearthstone, csgo, league, currencyName, minRoll FROM channels WHERE name = "' + req.session.user + '"', function (err, rows, fields) {
+            if (err)
+                throw err;
+            res.render('functions.ejs', { channel: req.session.user, hearthstone: rows[0]['hearthstone'], csgo: rows[0]['csgo'], league: rows[0]['league'], currencyName: rows[0]['currencyName'], minRoll: rows[0]['minRoll'] });
         });
     }
     else
         res.render('index.ejs', { clientid: auth.clientid, sessionName: '' });
+});
+
+app.get('/giveaway', function (req, res) {
+    res.render('giveaway.ejs');
+});
+
+app.get('/', function (req, res) {
+    console.log('Website Client Connection. IP: ' + req.connection.remoteAddress);
+    console.log('User-Agent: ' + req.headers['user-agent'] + '\n');
+    res.render('index.ejs', { clientid: auth.clientid, sessionName: req.session.user });
 });
 
 app.get('/logout', function (req, res) {
@@ -770,7 +837,7 @@ app.get('/api/:table', function (req, res) {
 });
 
 // Final catch-all routing to prevent 404's
-app.get('*', function (req, res) {
+app.get('/*', function (req, res) {
     res.redirect(301, "http://www.bovinitydivinity.com");
 });
 // End Web Interface
