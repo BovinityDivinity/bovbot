@@ -62,6 +62,12 @@ $(user) - Returns the name of the user invoking the command.
 
 $(random) - Returns the name of a random viewer currently in the stream.
 
+## Giveaways
+
+Currently giveaway functionality is only supported on the BinnieTV stream. The giveaway system uses a separate page that allows the streamer to randomly select a winner using several different criteria. (Options include: Chat activity, all viewers, and currency amount)
+
+The winning viewer will have their name displayed on-stream in a custom alert if the streamer has configured their streaming software to do so.
+
 ## Draw
 
 Draw is a BovBot functionality that allows viewers to draw directly on the stream that they are viewing. Draw requires the broadcaster to have the CLR Browser plugin installed in OBS, and have a CLR Browser source with a width and height equal to their stream width and height. In addition, the CLR Browser source must be pointed at http://www.bovinitydivinity.com/draw/[channelName]/drawframe.html. 
