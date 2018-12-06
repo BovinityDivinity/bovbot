@@ -8,6 +8,16 @@ function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
+function botConnect() {
+    bot.connect(function () {
+        console.log('Logging in: irc.twitch.tv');
+        bot.send('CAP REQ', 'twitch.tv/membership');
+        bot.send('CAP REQ', 'twitch.tv/commands');
+        bot.send('CAP REQ', 'twitch.tv/tags'); //Need IRCv3 capabilities!
+        bot.join('#bovbot');
+        bot.join('#binnietv');
+    });
+}
 
 //Database Connection
 var connection = DB.createPool({
@@ -16,6 +26,11 @@ var connection = DB.createPool({
     user: auth.dbuser,
     password: auth.password,
     database: auth.dbname
+});
+
+connection.on('error', function (err) {
+    console.log(err.code);
+    console.log(err.query);
 });
 
 //IRC Connection
@@ -28,19 +43,25 @@ var config = {
 
 //Create bot IRC client, connect to Twitch IRC, join default channels, and perform capability requests
 var bot = new irc.Client(config.server, config.nick, { password: config.password, floodProtection: true, floodProtectionDelay: 1000, autoConnect: false });
-
-bot.connect(function () {
-    console.log('Logging in: irc.twitch.tv');
-    bot.send('CAP REQ', 'twitch.tv/membership');
-    bot.send('CAP REQ', 'twitch.tv/commands');
-    bot.send('CAP REQ', 'twitch.tv/tags'); //Need IRCv3 capabilities!
-    bot.join('#bovbot');
-    bot.join('#binnietv');
-});
+botConnect();
 
 //Begin Bot Event Listeners
 bot.addListener('error', function (message) {
     console.error('ERROR: %s: %s', message.command, message.args.join(' '));
+});
+
+bot.addListener('quit', function (nick, reason, channels, message) {
+    if (nick == 'bovbot') {
+        console.log('Disconnected from the Twitch IRC server? Reason: ' + reason + ' Message: ' + message);
+        botConnect();
+    }
+});
+
+bot.addListener('part', function (channel, nick, reason, message) {
+    if(nick == 'bovbot') {
+        console.log('Bot removed from channel ' + channel + '. Rejoining.')
+        bot.join(channel);
+    }
 });
 
 bot.addListener('join', function (channel, nick) {
@@ -51,20 +72,22 @@ bot.addListener('join', function (channel, nick) {
 });
 
 // Raw Data Dump for Debugging
-/*bot.addListener('raw', function (message) { 
-    console.log(message);
-});*/
-
-bot.addListener('notice', function (nick, to, text, message) {
+bot.addListener('raw', function (message) { 
     console.log(message);
 });
 
+bot.addListener('notice', function (nick, to, text, message) {
+    console.log('NOTICE: ' + message);
+});
+
 // Handler for Chat Messages
-bot.addListener('message', function (from, to, message, userType) {
+bot.addListener('message', function (from, to, message, userType, color, badges) {
     var isMod = false;
     var channel = to.substring(1);
+    if (typeof (color) == 'boolean')
+        color = '#0000FF';
 
-    if (userType == 'mod' || from.toLowerCase() == to.substring(1))
+    if (from == 'bovinity' || userType == 'mod' || from.toLowerCase() == to.substring(1))
         isMod = true;
 
     if (message.match(/[^\w\s!?.]{10,}/g)) {
@@ -75,9 +98,7 @@ bot.addListener('message', function (from, to, message, userType) {
         }
     }
 
-    message = message.replace(/[`~@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/]/gi, '');
-
-    connection.query('INSERT INTO ' + to.substring(1) + '_chatlog (viewer, text) VALUES ("' + from + '","' + message + '")', function (err, rows, fields) {
+    connection.query('INSERT INTO ' + to.substring(1) + '_chatlog (viewer, text, color, badges) VALUES (' + connection.escape(from) + ',' + connection.escape(message) + ',' + connection.escape(color) + ',' + connection.escape(badges) + ')', function (err, rows, fields) {
         if (err)
             throw err;
     });
@@ -93,11 +114,40 @@ bot.addListener('message', function (from, to, message, userType) {
                     bot.say(to, 'Viewer ' + from + ' not found. (No currency yet?)');
             });
         }
+        else if (message.match(/^!points/)) {
+            var parsedRequest = message.split(' ');            
+            connection.query('SELECT credits FROM ' + channel + '_viewers WHERE viewer = "' + from + '" UNION SELECT currencyName FROM channels WHERE name = "' + channel + '"', function (err, rows, fields) {
+                if(err)
+                    throw err;
+                if(rows[0]) {
+                    bot.say(to, from + ' has ' + rows[0]['credits'] + ' ' + rows[1]['credits'] + ' remaining' );                    
+                }
+                else
+                    bot.say(to, from + ', you do not exist!');
+
+            });
+        }
+        else if (message.match(/^!frames /)) {
+            parsedRequest = message.split(' ');
+            character = parsedRequest[1];            
+            move = parsedRequest.slice(2).join(' ');
+            request('https://raw.githubusercontent.com/D4RKONION/fatsfvframedatajson/master/sfv.json', function(error, response, body) {
+                if (!error && response.statusCode == 200) {
+                    var output = JSON.parse(body);
+                    if(output[character] && output[character]['moves']['normal'][move]) {
+                        bot.say(to, character + ' ' + move + ': Startup: ' + output[character]['moves']['normal'][move]['startup'] + ', Recovery: ' + output[character]['moves']['normal'][move]['recovery'] + ', On Block: ' + output[character]['moves']['normal'][move]['onBlock']  +  ', On Hit: ' + output[character]['moves']['normal'][move]['onHit']);
+                    }
+                    else 
+                        bot.say(to, 'Sorry, I do not recognize that.');
+                }
+            });
+        }
         else if (message.match(/^!bet /)) {
             var parsedRequest = message.split(' ');
             var credits;
             var roll;
             var currencyName;
+            var minRoll = 0;
             if (parsedRequest[1]) {
                 parsedRequest[1] = Number(parsedRequest[1]);
                 if (!isNaN(parsedRequest[1])) {
@@ -139,18 +189,6 @@ bot.addListener('message', function (from, to, message, userType) {
             else
                 bot.say(to, from + ": Invalid Bet.");
         }
-        else if (message == '!giveaway') {
-            if (from == to.substring(1)) {
-                bot.say(to, 'Giveaway Time!');
-                connection.query('SELECT viewer FROM ' + to.substring(1) + '_chatlog ORDER BY RAND() LIMIT 1', function (err, rows, fields) {
-                    if (err)
-                        throw err;
-                    bot.say(to, 'And the winner is: ' + rows[0]['viewer'].toUpperCase() + rows[0]['viewer'].substring(1) + '!');
-                });
-            }
-            else
-                bot.say(to, 'Only the broadcaster decides when to do a giveaway.');
-        }
         else if (message == '!uptime') {
             request('https://api.twitch.tv/kraken/streams/' + to.substring(1) + '?oauth_token=' + auth.oauth.substring(6), function (error, response, body) {
                 if (!error && response.statusCode == 200) {
@@ -169,7 +207,7 @@ bot.addListener('message', function (from, to, message, userType) {
                             parseUptime += uptimeMS.getUTCMinutes() + " minutes, ";
                         if (uptimeMS.getUTCSeconds() > 0)
                             parseUptime += uptimeMS.getUTCSeconds() + " seconds. ";
-                        bot.say(to, parseUptime);
+                        bot.say(to, to.substring(1) + ' has been online for: ' + parseUptime);
                     }
                     else {
                         bot.say(to, 'Channel is not online.');
@@ -326,7 +364,7 @@ bot.addListener('message', function (from, to, message, userType) {
         }
         else if (message.match(/^!join /)) {
             if (to == "#bovbot") {
-                if (from == 'bovinity') {
+                if (from.toLowerCase() == 'bovinity') {
                     var parsedMessage = message.split(' ');
                     bot.join('#' + parsedMessage[1], function () { });
                 }
@@ -338,7 +376,7 @@ bot.addListener('message', function (from, to, message, userType) {
         }
         else if (message.match(/^!part /)) {
             if (to == "#bovbot") {
-                if (from == 'bovinity') {
+                if (from.toLowerCase() == 'bovinity') {
                     var parsedMessage = message.split(' ');
                     bot.part('#' + parsedMessage[1], function () { });
                 }
@@ -354,6 +392,7 @@ bot.addListener('message', function (from, to, message, userType) {
                 var parsedRequest = message.split(' ');
                 var newCommand = parsedRequest[1];
                 var newResponse = parsedRequest.slice(2).join(' ');
+                console.log(newCommand);
                 if (!newCommand.match(/^!/) || !newResponse)
                     bot.say(to, 'Invalid command format. Must begin with ! and contain a suitable response.');
                 else {
@@ -363,7 +402,7 @@ bot.addListener('message', function (from, to, message, userType) {
                         if (rows[0])
                             bot.say(to, 'Command ' + newCommand + ' already exists, ignoring.');
                         else
-                            connection.query('INSERT INTO ' + commandsTable + ' (command, response) VALUES ("' + newCommand + '","' + newResponse + '")', function (err, rows, fields) {
+                            connection.query('INSERT INTO ' + commandsTable + ' (command, response) VALUES (' + connection.escape(newCommand) + ',' + connection.escape(newResponse) + ')', function (err, rows, fields) {
                                 if (err)
                                     throw err;
                                 bot.say(to, 'Command ' + newCommand + ' added.');
@@ -435,12 +474,12 @@ bot.addListener('message', function (from, to, message, userType) {
                         throw err;
                     if (rows[0]) {
                         var options = {
-                            url: 'https://api.twitch.tv/kraken/channels/' + to.substring(1) + '?channel[status]=' + message.substr(message.indexOf(" ") + 1) + '&_method=put&oauth_token=' + rows[0]['auth_key'],
-                            method: 'get'
+                            url: 'https://api.twitch.tv/kraken/channels/' + to.substring(1) + '?channel[status]=' + message.substr(message.indexOf(" ") + 1) + '&oauth_token=' + rows[0]['auth_key'] + '&client_id=' + auth.clientid,
+                            method: 'PUT'
                         };
-                        request(options, function (error, response, body) {
+                        request(options, function (error, response, body) {                            
                             if (error)
-                                console.log(error);
+                                console.log('Error setting topic: ' + error);
                         });
                         bot.say(to, from + ': Channel Topic Updated.');
                     }
@@ -457,12 +496,13 @@ bot.addListener('message', function (from, to, message, userType) {
                         throw err;
                     if (rows[0]) {
                         var options = {
-                            url: 'https://api.twitch.tv/kraken/channels/' + to.substring(1) + '?channel[game]=' + message.substr(message.indexOf(" ") + 1) + '&_method=put&oauth_token=' + rows[0]['auth_key'],
-                            method: 'get'
+                            url: 'https://api.twitch.tv/kraken/channels/' + to.substring(1) + '?channel[game]=' + message.substr(message.indexOf(" ") + 1) + '&oauth_token=' + rows[0]['auth_key'] + '&client_id=' + auth.clientid,
+                            method: 'PUT'
                         };
-                        request(options, function (error, response, body) {
+                        request(options, function (error, response, body) {   
+                            console.log(response);                        
                             if (error)
-                                console.log(error);
+                                console.log('Error setting game: ' + error);
                         });
                         bot.say(to, from + ': Channel Game Updated.');
                     }
@@ -493,15 +533,15 @@ bot.addListener('message', function (from, to, message, userType) {
                                     for (var i = 1; i < commandArray.length; i++) {
                                         rows[0].response = rows[0].response.replace('$(' + i + ')', commandArray[i]);
                                     }
-                                    bot.say(to, rows[0].response);
                                 }
                                 else
                                     bot.say(to, 'Invalid number of parameters.');
                             }
-                            else
-                                bot.say(to, rows[0].response);
+                            bot.say(to, rows[0].response);
                         });
                     }
+                    else
+                        bot.say(to, rows[0].response);
                 }
             });
         }
@@ -593,6 +633,7 @@ var io = require('socket.io')(server);
 app.use(session({ secret: auth.secret, resave: false, saveUninitialized: true }));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static('views/html'));
+
 server.listen(80, function () {
     console.log('Listening on Port 80');
 });
@@ -609,6 +650,9 @@ io.on('connection', function (socket) {
     });
     socket.on('erase', function () {
         io.emit('erase');
+    });
+    socket.on('giveaway', function (winner) {
+        io.emit('giveaway', winner);
     });
 });
 
@@ -663,7 +707,7 @@ app.post('/', function (req, res) {
             });
             break;
         case 'deleteCommand':
-            var commandsTable = userSession.user + '_commands';
+            var commandsTable = req.session.user + '_commands';
             connection.query('DELETE FROM ' + commandsTable + ' WHERE command = "' + req.body.command + '" LIMIT 1', function (err, rows, fields) {
                 if (err)
                     throw err;
@@ -671,7 +715,7 @@ app.post('/', function (req, res) {
             });
             break;
         case 'editCommand':
-            var commandsTable = userSession.user + '_commands';
+            var commandsTable = req.session.user + '_commands';
             connection.query('UPDATE ' + commandsTable + ' SET response = "' + req.body.response + '" WHERE command = "' + req.body.command + '" LIMIT 1', function (err, rows, fields) {
                 if (err)
                     throw err;
@@ -679,7 +723,7 @@ app.post('/', function (req, res) {
             });
             break;
         case 'addTimer':
-            connection.query('INSERT INTO timers (response, timer, channel) VALUES ("' + req.body.announcement + '", "' + req.body.delay + '", "' + userSession.user + '")', function (err, rows, fields) {
+            connection.query('INSERT INTO timers (response, timer, channel) VALUES ("' + req.body.announcement + '", "' + req.body.delay + '", "' + req.session.user + '")', function (err, rows, fields) {
                 if (err)
                     throw err;
                 res.end('done');
@@ -695,7 +739,7 @@ app.post('/', function (req, res) {
         case 'join':
             bot.join('#' + req.body.channel, function () {
                 var channelList = Object.keys(bot.chans);
-                if (channelList.indexOf('#' + userSession.user) != -1)
+                if (channelList.indexOf('#' + req.session.user) != -1)
                     var botStatus = 'is';
                 else
                     var botStatus = 'is not';
@@ -725,7 +769,49 @@ app.post('/', function (req, res) {
                 res.end('done');
             });
             break;
+        case 'giveaway':
+            var query = 'SELECT viewer FROM binnietv_chatlog WHERE timestamp >= NOW() - INTERVAL 45 MINUTE';
+            var winners = [];
+            if (req.body['winners[]']) {
+                req.body['winners[]'] = req.body['winners[]'].replace(/"/g, '').replace(/\[/g, '').replace(/\]/g, '');
+                if (req.body['winners[]'] != '') {
+                    winners = req.body['winners[]'].split(',');
+                    if (winners.length > 0) {
+                        query += ' AND viewer NOT IN (';
+                        for (var i = 0; i < winners.length; i++) {
+                            query += '"' + winners[i] + '"';
+                            if (i+1 < winners.length)
+                                query += ',';
+                        }
+
+                        query += ')';
+                    }
+                }
+            }
+            query += ' ORDER BY rand() LIMIT 1';
+            connection.query(query, function (err, rows, fields) {
+                if (err)
+                    throw err;
+                if (rows[0]) {
+                    res.send({ winner: rows[0]['viewer'] });
+                    io.emit('giveaway', rows[0]['viewer']);
+                    res.end('done');
+                }
+                else
+                    res.sendStatus(204);
+            });
+            break;
+        case 'message':
+            io.emit('message', req.body['firstLine'], req.body['secondLine']);
+            break;
+
     }
+});
+
+app.get('/', function (req, res) {
+    //console.log('Website Client Connection. IP: ' + req.connection.remoteAddress);
+    //console.log('User-Agent: ' + req.headers['user-agent'] + '\n');
+    res.render('index.ejs', { clientid: auth.clientid, sessionName: req.session.user });
 });
 
 // The Draw Webpage.
@@ -756,13 +842,24 @@ app.get('/issues', function (req, res) {
 // User config pages requiring a login session.
 app.get('/dashboard', function (req, res) {
     if (req.session.user) {
+        var totalViewers = 0;
+        var chatLines = 0;
         var channelList = Object.keys(bot.chans);
         if (channelList.indexOf('#' + req.session.user) != -1)
             var botStatus = 'is';
         else
             var botStatus = 'is not';
-        res.render('dashboard.ejs', { channel: req.session.user, status: botStatus });
-        res.end('done');
+        connection.query('SELECT COUNT(*) as count FROM ' + req.session.user + '_chatlog', function (err, rows, fields) {
+            if (err)
+                throw err;
+            chatLines = rows[0]['count'];
+            connection.query('SELECT COUNT(DISTINCT viewer) as count FROM ' + req.session.user + '_viewers', function (err, rows, fields) {
+                if (err)
+                    throw err;
+                totalViewers = rows[0]['count'];
+                res.render('dashboard.ejs', { channel: req.session.user, status: botStatus, totalViewers: totalViewers, chatLines: chatLines });
+            });
+        });
     }
     else
         res.render('index.ejs', { clientid: auth.clientid, sessionName: '' });
@@ -803,14 +900,13 @@ app.get('/functions', function (req, res) {
         res.render('index.ejs', { clientid: auth.clientid, sessionName: '' });
 });
 
-app.get('/giveaway', function (req, res) {
-    res.render('giveaway.ejs');
+app.get('/chatlog', function (req, res) {
+    var channel = req.session.user || 'binnietv';
+    res.render('chatlog.ejs', { channel: channel });
 });
 
-app.get('/', function (req, res) {
-    console.log('Website Client Connection. IP: ' + req.connection.remoteAddress);
-    console.log('User-Agent: ' + req.headers['user-agent'] + '\n');
-    res.render('index.ejs', { clientid: auth.clientid, sessionName: req.session.user });
+app.get('/giveaway', function (req, res) {
+    res.render('giveaway.ejs');
 });
 
 app.get('/logout', function (req, res) {
@@ -820,17 +916,47 @@ app.get('/logout', function (req, res) {
 
 // API Routes
 app.get('/api/:table', function (req, res) {
-    connection.query('SHOW TABLES LIKE "' + req.params.table + '"', function (err, rows, fields) {
+    connection.query('SHOW TABLES LIKE ' + connection.escape(req.params.table), function (err, rows, fields) {
+        if (err)
+            throw err;
+        connection.query('SELECT * FROM ' + req.params.table, function (err, rows, fields) {
+            if (err)
+                throw err;
+            if (rows[0])
+                res.send(rows);
+            else
+                res.sendStatus(204);
+        })
+    })
+});
+
+app.get('/api/chat/:channel', function (req, res) {
+    var table = req.params.channel + '_chatlog';
+    connection.query('SHOW TABLES LIKE ' + connection.escape(table), function (err, rows, fields) {
         if (err)
             throw err;
         if (!rows[0])
-            res.send('Error: Database Table Not Found');
+            res.sendStatus(204);
         else {
-            connection.query('SELECT * FROM ' + req.params.table, function (err, rows, fields) {
+            var limit = req.query.limit || 25;
+            var begin = req.query.begin || 0;
+            var viewer = req.query.viewer || false;
+            var date = req.query.date || false;
+            var query = 'SELECT id, DATE_FORMAT(timestamp, "%m-%d-%Y %H:%i") as timestamp, viewer, text, color, badges FROM ' + table + ' WHERE id > ' + begin;
+            if (viewer) {
+                query += ' AND viewer = ' + connection.escape(viewer);
+            }
+            if (date) {
+                query += ' AND DATE(timestamp) = ' + connection.escape(date);
+            }
+            query += ' LIMIT ' + limit;
+            connection.query(query, function (err, rows, fields) {
                 if (err)
                     throw err;
                 if (rows[0])
                     res.send(rows);
+                else
+                    res.sendStatus(204);
             });
         }
     });
