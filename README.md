@@ -1,6 +1,6 @@
 # BovBot
 
-A simple Twitch chatbot developed for BinnieTV as a Node practice project. Using it on other channels is possible, but some functions are unique to the BinnieTV channel at this time.
+A simple Twitch chatbot developed for BinnieTV. Using it on other channels is possible, but some functions are unique to the BinnieTV channel at this time.
 
 ## Commands
 
