@@ -1,25 +1,10 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="">
-    <meta name="author" content="">
-    <title>BovBot Admin Site</title>
-    <!-- Bootstrap Core CSS -->
-    <link href="../css/bootstrap.min.css" rel="stylesheet">
-    <!-- Custom CSS -->
-    <link href="../css/sb-admin.css" rel="stylesheet">
-    <!-- Custom Fonts -->
-    <link href="../font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
-    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
-    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
-    <!--[if lt IE 9]>
-        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
-        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
-    <![endif]-->
+    <% include html/include/headblock %>
 </head>
+
 <body>
     <div id="wrapper">
         <!-- Navigation -->
@@ -36,9 +21,6 @@
             </div>
             <!-- Top Menu Items -->
             <ul class="nav navbar-right top-nav"></ul>
-            <!-- Sidebar Menu Items - These collapse to the responsive navigation menu on small screens -->
-            
-            <!-- /.navbar-collapse -->
         </nav>
         <div id="page-wrapper">
             <div class="container-fluid">
@@ -48,95 +30,124 @@
                         <h1 class="page-header">
                             Commands
                         </h1>
-                        <ol class="breadcrumb">
-                            <br />
-                            <div class="contentDiv">
-                                <center>
-                                    <br />
-                                    <table class="table table-bordered table-hover table-striped">
-                                        <tr><th colspan="2">BovBot Core Commands</th></tr>
-                                        <tr><td><strong>Command</strong></td><td><strong>Response</strong></td></tr>
-                                        <tr>
-                                            <td>!commands</td>
-                                            <td>Retuns a link to this page.</td>
-                                        </tr>
-                                        <tr>
-                                            <td>!uptime</td>
-                                            <td>Returns the length of time the stream has been online, or a notification that the stream is not online.</td>
-                                        </tr>
-                                        <tr>
-                                            <td>!addcom [Name] [Response]</td>
-                                            <td>Adds a new command to the database. CommandName must begin with !. (Moderators Only)</td>
-                                        </tr>
-                                        <tr>
-                                            <td>!delcom [Name]</td>
-                                            <td>Deletes a command from the database. (Moderators Only)</td>
-                                        </tr>
-                                        <tr>
-                                            <td>!editcom [Name] [NewResponse]</td>
-                                            <td>Changes the response given by an existing command. (Moderators Only)</td>
-                                        </tr>                                      
-                                        <tr>
-                                            <td>!topic [Topic]</td>
-                                            <td>Changes the stream topic. (Moderators Only, requires API authorization.)</td>
-                                        </tr>
-                                        <tr>
-                                            <td>!game [Game]</td>
-                                            <td>Changes the stream game. (Moderators Only, requires API authorization.)</td>
-                                        </tr>
-                                        <tr>
-                                            <td>!8ball [Question]</td>
-                                            <td>Asks the Magic 8-Ball a question!</td>
-                                        </tr>
-                                        <tr>
-                                            <td>!champion [Name] ([Ability])</td>
-                                            <td>(League of Legends) Returns a list of abilities used by a given champion. If ability is given, returns a description of that ability instead.</td>
-                                        </tr>
-                                        <tr>
-                                            <td>!skin [Name] | [Skin] [Quality]</td>
-                                            <td>(CS:GO) Returns the lowest and median prices for a given skin. ex: !skin AK-47 | Jaguar (FN)</td>
-                                        </tr>
-										<tr>
-                                            <td>!hs [Name]</td>
-                                            <td>(Hearthstone) Returns Name, Cost and details of given card, or closest match if full name is not found.</td>
-                                        </tr>
-                                    </table><br />
-                                    <a name="custom"></a>
-                                    <table class="table table-bordered table-hover table-striped">
-                                        <tr><th colspan="2">User Defined Commands for Channel: <%= channel %></th></tr>
-                                        <tr><td><strong>Command</strong></td><td><strong>Response</strong></td></tr>
-                                        <% for(var i =0; i
+                        <div class="contentDiv">
+                            <table class="table table-bordered table-hover table-striped">
+                                <tr>
+                                    <th colspan="2">BovBot Core Commands</th>
+                                </tr>
+                                <tr>
+                                    <td><strong>Command</strong></td>
+                                    <td><strong>Response</strong></td>
+                                </tr>
+                                <tr>
+                                    <td>!commands</td>
+                                    <td>Retuns a link to this page.</td>
+                                </tr>
+                                <tr>
+                                    <td>!uptime</td>
+                                    <td>Returns the length of time the stream has been online, or a notification that the stream
+                                        is not online.</td>
+                                </tr>
+                                <tr>
+                                    <td>!addcom [Name] [Response]</td>
+                                    <td>Adds a new command to the database. CommandName must begin with !. (Moderators Only)</td>
+                                </tr>
+                                <tr>
+                                    <td>!delcom [Name]</td>
+                                    <td>Deletes a command from the database. (Moderators Only)</td>
+                                </tr>
+                                <tr>
+                                    <td>!editcom [Name] [NewResponse]</td>
+                                    <td>Changes the response given by an existing command. (Moderators Only)</td>
+                                </tr>
+                                <tr>
+                                    <td>!topic [Topic]</td>
+                                    <td>Changes the stream topic. (Moderators Only, requires API authorization.)</td>
+                                </tr>
+                                <tr>
+                                    <td>!game [Game]</td>
+                                    <td>Changes the stream game. (Moderators Only, requires API authorization.)</td>
+                                </tr>
+                                <tr>
+                                    <td>!8ball [Question]</td>
+                                    <td>Asks the Magic 8-Ball a question!</td>
+                                </tr>
+                                <tr>
+                                    <td>!champion [Name] ([Ability])</td>
+                                    <td>(League of Legends) Returns a list of abilities used by a given champion. If ability
+                                        is given, returns a description of that ability instead.</td>
+                                </tr>
+                                <tr>
+                                    <td>!skin [Name] | [Skin] [Quality]</td>
+                                    <td>(CS:GO) Returns the lowest and median prices for a given skin. ex: !skin AK-47 | Jaguar
+                                        (FN)</td>
+                                </tr>
+                                <tr>
+                                    <td>!hs [Name]</td>
+                                    <td>(Hearthstone) Returns Name, Cost and details of given card, or closest match if full
+                                        name is not found.</td>
+                                </tr>
+                            </table><br />
+                            <a name="custom"></a>
+                            <table class="table table-bordered table-hover table-striped">
+                                <tr>
+                                    <th colspan="2">User Defined Commands for Channel:
+                                        <%= channel %>
+                                    </th>
+                                </tr>
+                                <tr>
+                                    <td><strong>Command</strong></td>
+                                    <td><strong>Response</strong></td>
+                                </tr>
+                                <% for(var i =0; i
                                         <commands.length; i++) { %>
-                                            <tr><td><%= commands[i]['command'] %></td><td><%= commands[i]['response'] %></td></tr>
-                                            <% } %>
-                                    </table><br />
-                                    <a name="timers"></a>
-                                    <table class="table table-bordered table-hover table-striped">
-                                        <tr>
-                                        <tr><th colspan="2">User Defined Timers for Channel: <%= channel %></th></tr>
-                                        <tr><td><strong>Announcement</strong></td><td><strong>Timer (Seconds)</strong></td></tr>
-                                        <% for(var i =0; i
-                                        <timers.length; i++) { %>
-                                            <tr><td><%= timers[i]['response'] %></td><td><%= timers[i]['timer'] %></td></tr>
-                                            <% } %>
-                                    </table>
+                                    <tr>
+                                        <td>
+                                            <%= commands[i]['command'] %>
+                                        </td>
+                                        <td>
+                                            <%= commands[i]['response'] %>
+                                        </td>
                                     </tr>
-                                    </table>
-                                </center>
-                        </ol>
+                                    <% } %>
+                            </table><br />
+                            <a name="timers"></a>
+                            <table class="table table-bordered table-hover table-striped">
+                                <tr>
+                                    <tr>
+                                        <th colspan="2">User Defined Timers for Channel:
+                                            <%= channel %>
+                                        </th>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Announcement</strong></td>
+                                        <td><strong>Timer (Seconds)</strong></td>
+                                    </tr>
+                                    <% for(var i =0; i
+                                        <timers.length; i++) { %>
+                                        <tr>
+                                            <td>
+                                                <%= timers[i]['response'] %>
+                                            </td>
+                                            <td>
+                                                <%= timers[i]['timer'] %>
+                                            </td>
+                                        </tr>
+                                        <% } %>
+                            </table>
+                            </tr>
+                            </table>
+                        </div>
                     </div>
+                    <!-- /.row -->
                 </div>
-                <!-- /.row -->
+                <!-- /.container-fluid -->
             </div>
-            <!-- /.container-fluid -->
+            <!-- /#page-wrapper -->
         </div>
-        <!-- /#page-wrapper -->
-    </div>
-    <!-- /#wrapper -->
-    <!-- jQuery -->
-    <script src="js/jquery.js"></script>
-    <!-- Bootstrap Core JavaScript -->
-    <script src="js/bootstrap.min.js"></script>
+        <!-- /#wrapper -->
+        <!-- jQuery -->
+        <% include html/include/scriptblock %>
 </body>
-</html>
 
+</html>

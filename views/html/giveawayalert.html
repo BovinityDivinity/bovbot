@@ -1,0 +1,65 @@
+<head>
+    <link rel="stylesheet" type="text/css" href="css/animate.css">
+    <style>
+        @font-face {
+            font-family: "Mario";
+            src: url(http://www.bovinitydivinity.com/fonts/mario.ttf);
+        }        
+        #giveawayDisplay {
+            font-size: 50px;
+            font-weight: bold;
+            font-family: "Mario";
+            color: white;
+            background-color: black;
+            background-image: url('/images/confetti.gif');
+            display: none;
+        }
+        #nameSpan {
+            color: red;
+        }        
+    </style>
+    <style type="text/css">
+
+    </style>
+</head>
+
+<body>
+    <div id="giveawayDisplay"></div>
+    <script src="js/jquery.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/jquery.lettering.js"></script>
+    <script src="js/jquery.textillate.js"></script>
+    <script>
+        var socket = io();
+        var room = document.location.href;
+
+        $(function () {
+            socket.emit('join', room);
+        });
+
+        socket.on('giveaway', function (name) {                        
+            name = name.toUpperCase();            
+            $("#giveawayDisplay").html('<center><span class="tlt" id="nameSpan">' + name + '</span><br><span class="tlt">' + ' IS THE WINNER!' + '</span></center>')
+            $("#giveawayDisplay").css('display', 'block');
+            $('.tlt').textillate({ in: { effect: 'bounce' } , out: {effect: 'rollOut', callback: function () {$("#giveawayDisplay").css('display', 'none');} }});  
+            window.setTimeout(bounceWinner, 5000);        
+            window.setTimeout(removeGiveaway, 10000);
+        });
+
+        socket.on('message', function (firstLine, secondLine) {
+            $("#giveawayDisplay").html('<center><span class="tlt" id="nameSpan">' + firstLine + '</span><br><span class="tlt">' + secondLine + '</span></center>')
+            $("#giveawayDisplay").css('display', 'block');
+            $('.tlt').textillate({ in: { effect: 'bounce' } , out: {effect: 'rollOut', callback: function () {$("#giveawayDisplay").css('display', 'none');} }});  
+            window.setTimeout(bounceWinner, 5000);        
+            window.setTimeout(removeGiveaway, 10000);
+        });
+
+        function removeGiveaway() {
+            $(".tlt").textillate('out');
+        }        
+
+        function bounceWinner() {
+            $("#nameSpan").textillate('in');
+        }
+    </script>
+</body>

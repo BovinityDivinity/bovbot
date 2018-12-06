@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>
+        Lake County Library System
+    </title>
+    <base href="https://www.mylakelibrary.org">
+
+    <meta name="description" content="The Lake County Library System is a cooperative library system which provides free library services to all residents of Lake County, Florida"
+    />
+    <meta name="Author" content="Lake County Information Outreach - Elizabeth Heine" />
+    <meta name="keywords" content="Lake County Florida Library System books resources reference databases children adult programs reading literacy read"
+    />
+    <style type="text/css">
+        div.nrItem {
+            width: 100%;
+        }
+    </style>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" />
+    <link id="linkLayout" href="/css/layout.css" type="text/css" rel="stylesheet" media="screen" />
+    <link id="linkText" href="/css/text.css" type="text/css" rel="stylesheet" media="Screen" />
+    <link id="normal" rel="stylesheet" type="text/css" href="/css/textsize_normal.css" title="normal" media="Screen" />
+    <link id="medium" rel="alternate stylesheet" type="text/css" href="/css/textsize_medium.css" title="medium" media="Screen"
+    />
+    <link id="large" rel="alternate stylesheet" type="text/css" href="/css/textsize_large.css" title="large" media="Screen" />
+    <link id="linkPrint" href="/css/print.css" type="text/css" rel="stylesheet" media="print" />
+    <script type="text/javascript" src="//code.jquery.com/jquery-latest.js"></script>
+    <script src="/js/bootstrap.min.js" type="text/javascript"></script>
+    <script src="/js/bootstrap-hover-dropdown.min.js" type="text/javascript"></script>
+</head>
+
+<body>
+    <form method="post" action="/" id="form1">
+        <div class="aspNetHidden">
+            <input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwUKMTIxODA5MzQwNg9kFgJmD2QWAgIDEGRkFgICCQ9kFgQCAw8WAh4LXyFJdGVtQ291bnQCAxYGZg9kFgICAQ9kFggCAQ8PFgIeCEltYWdlVXJsBRZ+L2ltYWdlcy9uZXdzLzIwNzMuanBnZGQCAw8PFggeBFRleHQFFFRoYW5rc2dpdmluZyBIb2xpZGF5HgtOYXZpZ2F0ZVVybAUgfi9uZXdzL25ld3NfcmVsZWFzZS5hc3B4P2lkPTIwNzMeCENzc0NsYXNzBQhib2xkdGV4dB4EXyFTQgICZGQCBQ8PFgIfAgXLClRoZSBmb2xsb3dpbmcgbGlicmFyaWVzIGluIHRoZSBMYWtlIENvdW50eSBMaWJyYXJ5IFN5c3RlbSB3aWxsIGJlIGNsb3NlZCBmcm9tIFRodXJzZGF5LCBOb3YuIDIzIHVudGlsIE1vbmRheSwgTm92LiAyNyBmb3IgVGhhbmtzZ2l2aW5nOjxiciAvPg0KPGJyIC8+DQomYnVsbDsgQXN0b3IgQ291bnR5IExpYnJhcnkgKGVhcmx5IGNsb3N1cmUgYXQgNSBwLm0uIG9uIFdlZG5lc2RheSk8YnIgLz4NCiZidWxsOyBDYWdhbiBDcm9zc2luZ3MgQ29tbXVuaXR5IExpYnJhcnkgaW4gQ2xlcm1vbnQgKGVhcmx5IGNsb3N1cmUgYXQgNSBwLm0uIG9uIFdlZG5lc2RheSk8YnIgLz4NCiZidWxsOyBDb29wZXIgTWVtb3JpYWwgTGlicmFyeSBpbiBDbGVybW9udCAoYWxzbyBjbG9zZWQgV2VkbmVzZGF5KTxiciAvPg0KJmJ1bGw7IEVhc3QgTGFrZSBDb3VudHkgTGlicmFyeSBpbiBTb3JyZW50byAoZWFybHkgY2xvc3VyZSBhdCA1IHAubS4gb24gV2VkbmVzZGF5KTxiciAvPg0KJmJ1bGw7IEZydWl0bGFuZCBQYXJrIExpYnJhcnkgKGVhcmx5IGNsb3N1cmUgb24gTW9uZGF5IGF0IDYgcC5tLiwgVHVlc2RheSBhdCA1IHAubS4gYW5kIFdlZG5lc2RheSBhdCAzIHAubS4pPGJyIC8+DQomYnVsbDsgSGVsZW4gTGVobWFubiBNZW1vcmlhbCBMaWJyYXJ5IGluIE1vbnR2ZXJkZTxiciAvPg0KJmJ1bGw7IExhZHkgTGFrZSBQdWJsaWMgTGlicmFyeTxiciAvPg0KJmJ1bGw7IE1hcmlhbm5lIEJlY2sgTWVtb3JpYWwgTGlicmFyeSBpbiBIb3dleS1pbi10aGUtSGlsbHM8YnIgLz4NCiZidWxsOyBNYXJpb24gQmF5c2luZ2VyIE1lbW9yaWFsIExpYnJhcnkgaW4gR3JvdmVsYW5kIChlYXJseSBjbG9zdXJlIGF0IDUgcC5tLiBvbiBXZWRuZXNkYXkpPGJyIC8+DQomYnVsbDsgTWlubmVvbGEgU2Nob29saG91c2UgTGlicmFyeTxiciAvPg0KJmJ1bGw7IFBhaXNsZXkgQ291bnR5IExpYnJhcnkgKGVhcmx5IGNsb3N1cmUgYXQgNSBwLm0uIG9uIFdlZG5lc2RheSk8YnIgLz4NCiZidWxsOyBUYXZhcmVzIFB1YmxpYyBMaWJyYXJ5IDxiciAvPg0KPGJyIC8+DQpUaGUgTGVlc2J1cmcgUHVibGljIExpYnJhcnkgd2lsbCBjbG9zZSBhdCA2IHAubS4gb24gV2VkbmVzZGF5LCBOb3YuIDIyIGFuZCByZW9wZW4gb24gU2F0dXJkYXksIE5vdi4gMjUuIFRoZSBVbWF0aWxsYSBQdWJsaWMgTGlicmFyeSwgYW5kIFcuIFQuIEJsYW5kIFB1YmxpYyBMaWJyYXJ5IGJlIGNsb3NlZCBvbiBUaHVyc2RheSBhbmQgRnJpZGF5IGJ1dCB3aWxsIGJlIG9wZW4gZHVyaW5nIG5vcm1hbCBvcGVyYXRpb25hbCBob3VycyBvbiBTYXR1cmRheSwgd2l0aCB0aGUgVy4gVC4gQmxhbmQgUHVibGljIExpYnJhcnkgYWxzbyBvcGVuIG9uIFN1bmRheS4mbmJzcDsgZGQCBw8PFgIfAgUKMTEvMjEvMjAxN2RkAgIPZBYCAgEPZBYIAgEPDxYCHwEFFn4vaW1hZ2VzL25ld3MvMjA3MS5qcGdkZAIDDw8WCB8CBVtMYWtlIENvdW50eSBMaWJyYXJ5IFN5c3RlbSBzZWVrcyB2b2x1bnRlZXJzIHRvIGFzc2lzdCB3aXRoIG1lbnRvcmluZywgdHV0b3JpbmcgYW5kIHByb2dyYW1zHwMFIH4vbmV3cy9uZXdzX3JlbGVhc2UuYXNweD9pZD0yMDcxHwQFCGJvbGR0ZXh0HwUCAmRkAgUPDxYCHwIFwAFUaGUgTGFrZSBDb3VudHkgTGlicmFyeSBTeXN0ZW0gaXMgY3VycmVudGx5IGFjY2VwdGluZyB2b2x1bnRlZXIgYXBwbGljYXRpb25zIGZyb20gcGVvcGxlIHdobyBoYXZlIHRoZSB0aW1lIGFuZCBhYmlsaXR5IHRvIHN1cHBvcnQgdmFyaW91cyBmdW5jdGlvbnMgb2YgbGlicmFyeSBvcGVyYXRpb25zIGF0IGFueSBvZiAxNSBsb2NhdGlvbnNkZAIHDw8WAh8CBQkxMS84LzIwMTdkZAIED2QWAgIBD2QWCAIBDw8WAh8BBRZ+L2ltYWdlcy9uZXdzLzIwNjkuanBnZGQCAw8PFggfAgUlV2UgYXJlIHRoZSBMYWtlIENvdW50eSBMaWJyYXJ5IFN5c3RlbR8DBSB+L25ld3MvbmV3c19yZWxlYXNlLmFzcHg/aWQ9MjA2OR8EBQhib2xkdGV4dB8FAgJkZAIFDw8WAh8CBX08aWZyYW1lIHNyYz0iaHR0cHM6Ly93d3cueW91dHViZS5jb20vZW1iZWQvZ1JDcVZjOUxnMGsiIGFsbG93ZnVsbHNjcmVlbj0iIiB3aWR0aD0iNTYwIiBoZWlnaHQ9IjMxNSIgZnJhbWVib3JkZXI9IjAiPjwvaWZyYW1lPmRkAgcPDxYCHwIFCjEwLzI0LzIwMTdkZAIFD2QWBgIBDw8WAh8CBRBPY3RvYmVyIDI0LCAyMDE0ZGQCAw8PFgIfAgUTOCBhLm0uIHRvIDU6MDAgcC5tLmRkAgUPDxYCHwIFNzxhIGhyZWY9Jy9uZXdzL2RlZmF1bHQuYXNweCc+Q2xpY2sgaGVyZSBmb3IgZGV0YWlsczwvYT5kZGTRxmNLGiphacg4LJf33WVGYzNfwpux9KceNue+uAwlgQ=="
+            />
+        </div>
+
+        <div class="aspNetHidden">
+
+            <input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="CA0B0334" />
+        </div>
+        <a name="top"></a>
+
+        <!--[if lt IE 9]><div class="upgradebar"><a href="http://windows.microsoft.com/en-US/internet-explorer/downloads/ie" target="_blank">You are using an outdated browser. For a faster, safer browsing experience, upgrade for free today.</a></div><![endif]-->
+
+        <div id="mainnav">
+            <div class="container-fluid">
+                <nav class="menu navbar navbar-inverse">
+                    <div class="container">
+                        <div class="navbar-header">
+                            <a class="navbar-brand" style="display: block" href="#">Lake County Library System</a>
+                            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false"
+                                aria-controls="navbar">
+                                <span class="sr-only">Toggle navigation</span>
+                                <span class="icon-bar"></span>
+                                <span class="icon-bar"></span>
+                                <span class="icon-bar"></span>
+                            </button>
+                        </div>
+                        <div id="navbar" class="collapse navbar-collapse">
+                            <ul class="nav navbar-nav">
+                                <li class="dropdown">
+                                    <a aria-expanded="false" href="/" data-hover="dropdown" data-delay="300" data-close-others="true">Home</a>
+                                    <ul class="dropdown-menu">
+                                        <li><a href="/frequently_asked_questions.aspx">Frequently Asked Questions</a></li>
+                                        <li><a href="/web_forms/contact.aspx">Contact Us</a></li>
+                                    </ul>
+                                </li>
+                                <li class="dropdown"><a href="/libraries" data-hover="dropdown" data-delay="300" data-close-others="true">Libraries</a>
+                                    <ul class="dropdown-menu">
+                                        <li><a href="/libraries/astor_county_library.aspx" title="Astor County Library">Astor County Library</a></li>
+                                        <li><a href="/libraries/cagan_crossings_community_library.aspx" title="Cagan Crossings Library">Cagan Crossings Library</a></li>
+                                        <li><a href="/libraries/cooper_memorial_library.aspx" title="Cooper Memorial Library">Cooper Memorial Library</a></li>
+                                        <li><a href="/libraries/east_lake_county_library.aspx" title="East Lake County Library">East Lake County Library</a></li>
+                                        <li><a href="/libraries/fruitland_park_library.aspx" title="Fruitland Park Library">Fruitland Park Library</a></li>
+                                        <li><a href="/libraries/helen_lehmann_memorial_library.aspx" title="Helen Lehmann Library">Helen Lehmann Library</a></li>
+                                        <li><a href="/libraries/lady_lake_public_library.aspx" title="Lady Lake Public Library">Lady Lake Public Library</a></li>
+                                        <li><a href="/libraries/leesburg_public_library.aspx" title="Leesburg Public Library">Leesburg Public Library</a></li>
+                                        <li><a href="/libraries/marianne_beck_memorial.aspx" title="Marianne Beck Memorial">Marianne Beck Memorial Library</a></li>
+                                        <li><a href="/libraries/marion_baysinger_memorial_library.aspx" title="Marion Baysinger Library">Marion Baysinger Memorial Library</a></li>
+                                        <li><a href="/libraries/minneola_schoolhouse_library.aspx" title="Minneola Schoolhouse">Minneola Schoolhouse Library</a></li>
+                                        <li><a href="/libraries/paisley_county_library.aspx" title="Paisley County Library">Paisley County Library</a></li>
+                                        <li><a href="/libraries/tavares_public_library.aspx" title="Tavares Public Library">Tavares Public Library</a></li>
+                                        <li><a href="/libraries/umatilla_public_library.aspx" title="Umatilla Public Library">Umatilla Public Library</a></li>
+                                        <li><a href="/libraries/wt_bland_public_library.aspx" title="WT Bland Public Library">WT Bland Public Library</a></li>
+                                    </ul>
+
+                                </li>
+                                <li class="dropdown"><a href="http://catalog.mylakelibrary.org/" data-hover="dropdown" data-delay="300" data-close-others="true">Catalog</a>
+                                    <ul class="dropdown-menu">
+                                        <li><a href="/virtual_library/library_cards.aspx" title="How to apply for a Library Card">Get a Library Card</a></li>
+                                        <li><a href="http://mylakelibrary.lib.overdrive.com" title="Overdrive eBooks Catalog">Overdrive eBooks Catalog</a></li>
+                                        <li><a href="/virtual_library/rb-digital.aspx" title="RB Digital">RB Digital</a></li>
+                                        <li><a href="/reader_advisory_resources/" title="Reader Advisory Resources">Reader Advisory Resources</a></li>
+                                    </ul>
+                                </li>
+                                <li class="dropdown"><a href="http://mylakelibrary.evanced.info/signup/EventCalendar.aspx" class="dropdown-toggle"
+                                        data-toggle="dropdown" data-hover="dropdown" data-delay="300" data-close-others="true">Programs &amp; Events</a>
+                                    <ul class="dropdown-menu">
+                                        <li><a href="/news/default.aspx" title="Current News">Current News</a></li>
+                                        <li><a href="http://mylakelibrary.evanced.info/signup/EventCalendar.aspx?" title="Event Calendar">Event Calendar</a></li>
+                                        <li><a href="/dreadfest/default.aspx" title="DreadFest">DreadFest</a></li>
+
+
+                                        <li><a href="/poetry_contest/default.aspx" title="Annual Poetry Contest">Annual Poetry Contest</a></li>
+                                        <li><a href="/southern-gothic-writing-contest/default.aspx" title="Southern Gothic Writing Contest">Southern Gothic Writing Contest</a></li>
+                                        <li><a href="/nanofiction-contest/default.aspx" title="Nanofiction Contest">Nanofiction Contest</a></li>
+                                    </ul>
+                                </li>
+                                <li class="dropdown"><a href="/databases/" data-hover="dropdown" data-delay="300" data-close-others="true">Databases</a>
+                                    <ul class="dropdown-menu">
+                                        <li><a href="http://learningexpresslibrary3.com/?AuthToken=D36512C3-66B0-4896-9317-ECBC8D8CBC05"
+                                                title="Learning Express">Learning Express</a></li>
+                                        <li><a href="https://www.atozdatabases.com" title="AtoZ Database">AtoZdatabases</a></li>
+                                        <li><a href="http://ancestrylibrary.proquest.com/" title="Ancestry Library">Ancestry Library</a></li>
+                                        <li><a href="http://www.heritagequestonline.com/barcode?aid=7147" title="Heritage Quest">Heritage Quest</a></li>
+                                        <li><a href="http://www.abcmouse.com/" title="ABC Mouse">ABC Mouse</a></li>
+                                        <li><a href="http://www.flelibrary.org/" title="Florida Electronic Library">Florida Electronic Library</a></li>
+                                        <li><a href="http://fel.worldcat.org/advancedsearch?dblist=283" title="WorldCat">WorldCat Database</a></li>
+                                        <li><a href="http://learning.pronunciator.com/getstarted.php?library_id=19549" title="Self-directed Language lessons">Pronunciator</a></li>
+
+
+                                    </ul>
+
+                                </li>
+                                <li class="dropdown"><a href="/services/" data-hover="dropdown" data-delay="300" data-close-others="true">Services</a>
+                                    <ul class="dropdown-menu">
+                                        <li><a href="/services/career_online_high_school.aspx" title="Career Online High School">Career Online High School</a></li>
+                                        <li><a href="/adult_literacy_program/default.aspx" title="Adult Literacy Program">Adult Literacy Program</a></li>
+                                        <li><a href="http://www.askalibrarian.org/lakecounty" title="Ask A Librarian">Ask A Librarian</a></li>
+                                        <li><a href="/virtual_library/accelerated_reading_lists.aspx" title="Accelerated Reading Lists">Accelerated Reading Lists</a></li>
+
+                                        <li><a href="/services/books_by_mail.aspx" title="Books by Mail">Books by Mail</a></li>
+                                        <li><a href="/services/training_programs.aspx" title="Technology Classes">Technology Classes</a></li>
+                                        <li><a href="/services/friends_of_the_library.aspx" title="Friends of the Library">Friends of the Library</a></li>
+                                        <li><a href="/services/legal_services.aspx" title="Legal Resources">Legal Resources</a></li>
+                                        <li><a href="/services/reciprocal_borrowing.aspx" title="Reciprocal Borrowing">Reciprocal Borrowing</a></li>
+                                        <li><a href="/services/talking_books.aspx" title="Talking Books">Talking Books for Sight Impaired</a></li>
+                                    </ul>
+
+                                </li>
+                                <li class="dropdown"><a href="/teens/" data-hover="dropdown" data-delay="300" data-close-others="true">Teens</a>
+                                    <ul class="dropdown-menu">
+                                        <li><a href="/teens/news.aspx" title="Teen News and Events">Happenings</a></li>
+
+                                        <li><a href="/teens/homework_help.aspx" title="Homework Help">Homework Help</a></li>
+                                        <li><a href="/teens/reads.aspx" title="Must Reads and Book Reviews">Reads</a></li>
+                                        <li><a href="/teens/links.aspx" title="Cool and helpful links">Links</a></li>
+                                    </ul>
+                                </li>
+                                <li class="dropdown"><a href="/kids" data-hover="dropdown" data-delay="300" data-close-others="true">Kids</a>
+                                    <ul class="dropdown-menu">
+
+                                        <li><a href="/kids/books.aspx" title="Books and reading lists">Books</a></li>
+                                        <li><a href="/kids/activities.aspx" title="Kid-safe games and activities">Games</a></li>
+                                        <li><a href="/kids/media_gallery.aspx" title="Art, photos and videos">Pictures</a></li>
+                                        <li><a href="/kids/internet_directory.aspx" title="Links picked by staff">Links</a></li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+                        <!--/.nav-collapse -->
+                    </div>
+                </nav>
+
+            </div>
+        </div>
+        <div id="breadcrumb" class="hidden-xs">
+            <div class="container">
+                <span id="ctlBreadcrumbs_pathHeader"><span><a title="Lake County Library System Home" href="/default.aspx?main=main">Home</a></span><span>&#160;&#187;&#160;</span>
+                <span style="font-weight:bold;">Home</span>
+            </div>
+        </div>
+        <div id="content">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div class="page-header hidden-xs">
+                            <div class="pull-right">
+                                <a href="/news/">More News</a>&nbsp;&nbsp;&nbsp;&nbsp;<a href="http://feeds.lakecountyfl.gov/LakeCounty/LCLSNewsReleases"
+                                    class="rss">Subscribe</a>
+                            </div>
+                            <h1>Latest News</h1>
+                        </div>
+                    </div>
+                    <!--  /.col-sm-12  -->
+                    <div class="clearfix"></div>
+                    <div class="col-sm-12">
+                        <div class="clearfix">
+                            <div class="row" style="margin-bottom:10px; padding-top:10px;">
+                                <div class="col-md-3">
+                                    <img id="MainContent_rptNewsReleases_imgThumb_0" class="img-responsive hidden-xs" src="images/news/2073.jpg" />
+                                </div>
+                                <div class="col-md-9">
+                                    <h3 style="margin-top:0;"><a id="MainContent_rptNewsReleases_lnkHeadline_0" class="boldtext" href="news/news_release.aspx?id=2073">Thanksgiving Holiday</a></h3>
+                                    <span id="MainContent_rptNewsReleases_lblIntroText_0" class="nrIntroText">The following libraries in the Lake County Library System will be closed from Thursday, Nov. 23 until Monday, Nov. 27 for Thanksgiving:<br />
+<br />
+&bull; Astor County Library (early closure at 5 p.m. on Wednesday)<br />
+&bull; Cagan Crossings Community Library in Clermont (early closure at 5 p.m. on Wednesday)<br />
+&bull; Cooper Memorial Library in Clermont (also closed Wednesday)<br />
+&bull; East Lake County Library in Sorrento (early closure at 5 p.m. on Wednesday)<br />
+&bull; Fruitland Park Library (early closure on Monday at 6 p.m., Tuesday at 5 p.m. and Wednesday at 3 p.m.)<br />
+&bull; Helen Lehmann Memorial Library in Montverde<br />
+&bull; Lady Lake Public Library<br />
+&bull; Marianne Beck Memorial Library in Howey-in-the-Hills<br />
+&bull; Marion Baysinger Memorial Library in Groveland (early closure at 5 p.m. on Wednesday)<br />
+&bull; Minneola Schoolhouse Library<br />
+&bull; Paisley County Library (early closure at 5 p.m. on Wednesday)<br />
+&bull; Tavares Public Library <br />
+<br />
+The Leesburg Public Library will close at 6 p.m. on Wednesday, Nov. 22 and reopen on Saturday, Nov. 25. The Umatilla Public Library, and W. T. Bland Public Library be closed on Thursday and Friday but will be open during normal operational hours on Saturday, with the W. T. Bland Public Library also open on Sunday.&nbsp; </span><br
+                                    />
+                                    <span class="text_small_gray">For Release:  &nbsp;<span id="MainContent_rptNewsReleases_lblReleaseDate_0">11/21/2017</span></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="nrSep"></div>
+                        <div class="clearfix">
+                            <div class="row" style="margin-bottom:10px; padding-top:10px;">
+                                <div class="col-md-3">
+                                    <img id="MainContent_rptNewsReleases_imgThumb_1" class="img-responsive hidden-xs" src="images/news/2071.jpg" />
+                                </div>
+                                <div class="col-md-9">
+                                    <h3 style="margin-top:0;"><a id="MainContent_rptNewsReleases_lnkHeadline_1" class="boldtext" href="news/news_release.aspx?id=2071">Lake County Library System seeks volunteers to assist with mentoring, tutoring and programs</a></h3>
+                                    <span id="MainContent_rptNewsReleases_lblIntroText_1" class="nrIntroText">The Lake County Library System is currently accepting volunteer applications from people who have the time and ability to support various functions of library operations at any of 15 locations</span><br
+                                    />
+                                    <span class="text_small_gray">For Release:  &nbsp;<span id="MainContent_rptNewsReleases_lblReleaseDate_1">11/8/2017</span></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="nrSep"></div>
+                        <div class="clearfix">
+                            <div class="row hidden-xs" style="margin-bottom:10px; padding-top:10px;">
+                                <div class="col-md-3">
+                                    <img id="MainContent_rptNewsReleases_imgThumb_2" class="img-responsive hidden-xs" src="images/news/2069.jpg" />
+                                </div>
+                                <div class="col-md-9">
+                                    <h3 style="margin-top:0;"><a id="MainContent_rptNewsReleases_lnkHeadline_2" class="boldtext" href="news/news_release.aspx?id=2069">We are the Lake County Library System</a></h3>
+                                    <span id="MainContent_rptNewsReleases_lblIntroText_2" class="nrIntroText"><iframe src="https://www.youtube.com/embed/gRCqVc9Lg0k" allowfullscreen="" width="560" height="315" frameborder="0"></iframe></span><br
+                                    />
+                                    <span class="text_small_gray">For Release:  &nbsp;<span id="MainContent_rptNewsReleases_lblReleaseDate_2">10/24/2017</span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!--  /.col-sm-12  -->
+
+
+                    <!--  /.col-sm-4  -->
+                </div>
+                <!--  /.container-fluid  -->
+            </div>
+            <!--  /.row  -->
+        </div>
+        <div style="background-color:#68c2cd;padding-bottom:20px;" class="hidden-xs">
+            <div class="container-fluid">
+                <div class="row quicklinks">
+                    <div class="col-sm-6 col-md-3 quicklink">
+                        <a href="https://mylakelibrary.overdrive.com/" target="_blank"><img src="/images/Libby_Graphic_504x504-1-2.jpg" alt="Download and enjoy digital books anytime, anywhere."
+                            /></a>
+                    </div>
+                    <div class="col-sm-6  col-md-3 quicklink">
+                        <a href="http://catalog.mylakelibrary.org/cgi-bin/koha/opac-shelves.pl?op=view&shelfnumber=100&sortfield=author">
+                            <img src=" /images/preorder_best_sellers.jpg" alt="Order tomorrow's best sellers today! Place a hold on a new best seller before it releases. Click here for details!"
+                            /></a>
+                    </div>
+                    <div class="col-sm-6  col-md-3 quicklink">
+                        <a href="http://learning.pronunciator.com/getstarted.php?library_id=19549"><img src="/images/pronunciator.png" alt="Learn a new language with Pronunciator" /></a>
+                    </div>
+
+
+                    <div class="col-sm-6  col-md-3 quicklink">
+                        <a href="http://www.mylakelibrary.org/virtual_library/rb-digital.aspx">
+                            <img src="/images/rb-digital.jpg" alt="The world's largest newstand is now available through your library" /></a>
+                    </div>
+
+
+
+                </div>
+            </div>
+        </div>
+        <div id="footer">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-4">
+                        <p><img src="/images/template/logo.png" /></p>
+                        2401 Woodlea Road<br /> Tavares, FL 32778<br />
+                        <a href="/web_forms/contact.aspx" class="text_small">Contact Us</a> |
+                        <a href="/about/staff_contacts.aspx" class="text_small">Administration Staff</a><br />
+                        <a href="/about/plans_policies.aspx" class="text_small">Planning Documents &amp; Policies</a>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-4">
+                        <a href="/default.aspx">Home</a><br />
+                        <a href="/libraries/">Libraries</a><br />
+                        <a href="http://catalog.mylakelibrary.org/">Catalog</a><br />
+                        <a href="http://mylakelibrary.lib.overdrive.com">Overdrive eBooks</a> <br />
+                        <a href="/services/">Services </a><br />
+                        <a href="/frequently_asked_questions.aspx">Frequently Asked Questions</a>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-4">
+                        <a href="/teens/">Teen Lib</a><br />
+                        <a href="/kids/">Lakeline Kids</a><br />
+                        <a href="/news/">News</a><br />
+                        <a href="http://mylakelibrary.evanced.info/signup/EventCalendar.aspx">Events</a><br />
+                        <a href="/poetry_contest/">Poetry Contest</a><br />
+                        <a href="/bookmark_design_contest/">Bookmark Design Contest</a><br />
+                    </div>
+                    <div class="col-md-12 text-center">
+                        <a href="/about/copyrights.aspx" class="text_small">Copyright</a> | <a href="/privacy.aspx" class="text_small">Disclaimer</a>                        | <a href="http://www.lakecountyfl.gov" class="text_small">Lake County Government Home Page</a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+</body>
+
+</html>

@@ -1,0 +1,306 @@
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=0.41, maximum-scale=1" />
+    <title>BovBot Admin Site</title>
+    <link href="https://cdn.datatables.net/1.10.18/css/dataTables.bootstrap4.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm"
+        crossorigin="anonymous">
+    <link href="http://www.bovinitydivinity.com/css/sb-admin.css" rel="stylesheet">
+    <link href="http://www.bovinitydivinity.com/font-awesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+    <style>
+        div {
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="modal" tabindex="-1" id="branchSelectModal">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalLabel">Select Your Branch</h3>
+                </div>
+                <div class="modal-body">
+                    <select id="branch">
+                        <option value="ast">Astor County Library</option>
+                        <option value="cag">Cagan Crossings Community Library</option>
+                        <option value="elc">East Lake County Library</option>
+                        <option value="gro">Marion Baysinger Memorial Library</option>
+                        <option value="pai">Paisley County Library</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button id="selectButton" class="btn btn-primary">Select</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <select id='ccodeFilter' class='custom-select custom-select-sm form-control form-control-sm'>
+        <option value="ALL">All CCodes</option>
+        <option value="ABE">Adult Basic Education</option>
+        <option value="ANIME">Anime</option>
+        <option value="CASS">Audio Cassette</option>
+        <option value="ABF">Audiobook Fiction</option>
+        <option value="ABN">Audiobook Nonfiction</option>
+        <option value="BIO">Biography</option>
+        <option value="BLURAY">Blu-Ray</option>
+        <option value="BB">Board Books</option>
+        <option value="BCITEM">Book Club Item</option>
+        <option value="BCKIT">Book Club Kit</option>
+        <option value="BBM">Books by Mail</option>
+        <option value="CHRFIC">Christian Fiction</option>
+        <option value="CIT">Citizenship</option>
+        <option value="CLASSIC">Classic Novels</option>
+        <option value="DAD">Digital Audio Device</option>
+        <option value="DVD">DVD</option>
+        <option value="DVDTV">DVD (Television Series)</option>
+        <option value="DVDNF">DVD Nonfiction</option>
+        <option value="EBKS">e-Book</option>
+        <option value="EGRAPHIC">Easy Graphic Novel</option>
+        <option value="E">Easy Picture Books</option>
+        <option value="ENF">Easy Picture Books -- Nonfiction</option>
+        <option value="EAB">Easy Reader Audiobook</option>
+        <option value="ERDAD">Easy Reader Digital Audio Device</option>
+        <option value="ER">Easy Reader Fiction</option>
+        <option value="EKIT">Easy Reader Kit</option>
+        <option value="ERNF">Easy Reader Nonfiction</option>
+        <option value="ESL">English as a Second Language</option>
+        <option value="EQU">Equipment</option>
+        <option value="FA">Fast Add</option>
+        <option selected="selected" value="FIC">Fiction</option>
+        <option value="FIN">Financial Literacy</option>
+        <option value="FLA">Florida Collection</option>
+        <option value="GRAPHIC">Graphic Novel</option>
+        <option value="PHONES">Headphones</option>
+        <option value="DVDHD">High Definition DVD</option>
+        <option value="HIST">Historical Fiction</option>
+        <option value="HORROR">Horror</option>
+        <option value="DVDI">Indian DVDs</option>
+        <option value="INSP">Inspirational</option>
+        <option value="JOB">Job Prep</option>
+        <option value="JCASS">Juvenile Audio Cassette</option>
+        <option value="JABF">Juvenile Audiobook Fiction</option>
+        <option value="JABN">Juvenile Audiobook Nonfiction</option>
+        <option value="JBIO">Juvenile Biography</option>
+        <option value="JDAD">Juvenile Digital Audio Device</option>
+        <option value="JDVD">Juvenile DVD</option>
+        <option value="JF">Juvenile Fiction</option>
+        <option value="JGRAPHIC">Juvenile Graphic Novel</option>
+        <option value="JKIT">Juvenile Kit</option>
+        <option value="JCDM">Juvenile Music CD</option>
+        <option value="JNF">Juvenile Nonfiction</option>
+        <option value="JDVDNF">Juvenile Nonfiction DVD</option>
+        <option value="JPER">Juvenile Periodical</option>
+        <option value="KIT">Kit</option>
+        <option value="LAPTOP">Laptop</option>
+        <option value="LP">Large Print</option>
+        <option value="LPAD">Launchpad</option>
+        <option value="LSBIO">Lease Biography</option>
+        <option value="LSFIC">Lease Fiction</option>
+        <option value="LSINSP">Lease Inspirational Fiction</option>
+        <option value="LSLPFIC">Lease Large Print Fiction</option>
+        <option value="LSLPINSP">Lease Large Print Inspirational</option>
+        <option value="LSLPMYS">Lease Large Print Mystery</option>
+        <option value="LSLPNF">Lease Large Print Nonfiction</option>
+        <option value="LSLPPARA">Lease Large Print Paranormal</option>
+        <option value="LSLPROM">Lease Large Print Romance</option>
+        <option value="LSLPSCIF">Lease Large Print Romance</option>
+        <option value="LSLPWEST">Lease Large Print Western</option>
+        <option value="LSMYS">Lease Mystery</option>
+        <option value="LSNF">Lease Nonfiction</option>
+        <option value="LSPARA">Lease Paranormal Fiction</option>
+        <option value="LSROM">Lease Romance</option>
+        <option value="LSSCIF">Lease Science Fiction/Fantasy</option>
+        <option value="LSYAFIC">Lease Teen Fiction</option>
+        <option value="LSWEST">Lease Western</option>
+        <option value="LITW">Literacy</option>
+        <option value="MANGA">Manga</option>
+        <option value="MICRO">Microfilm/Microfiche</option>
+        <option value="MISC">Miscellaneous</option>
+        <option value="HOT">Mobile Hotspot</option>
+        <option value="MP3">MP3 Audiobook</option>
+        <option value="CDM">Music CD</option>
+        <option value="MYS">Mystery</option>
+        <option value="NEW">New Books</option>
+        <option value="LPNEW">New Large Print</option>
+        <option value="NF">Nonfiction</option>
+        <option value="VIDNF">Nonfiction Video Cassette</option>
+        <option value="PBK">Paperback</option>
+        <option value="PARA">Paranormal</option>
+        <option value="PER">Periodical</option>
+        <option value="PAB">Playaway Bookpack</option>
+        <option value="PAV">Playaway View</option>
+        <option value="PUZ">Puzzle</option>
+        <option value="REC">Record Albums</option>
+        <option value="REF">Reference</option>
+        <option value="ROM">Romance</option>
+        <option value="SCIF">Science Fiction/Fantasy</option>
+        <option value="SS">Short Stories</option>
+        <option value="SFT">Software</option>
+        <option value="SPABIO">Spanish Language Biography</option>
+        <option value="SPA">Spanish Language Collection</option>
+        <option value="SPAFIC">Spanish Language Fiction</option>
+        <option value="SPANF">Spanish Language Nonfiction</option>
+        <option value="STAR">Star Wars</option>
+        <option value="TB">Talking Books for the Blind</option>
+        <option value="TEACH">Teaching Materials</option>
+        <option value="YAAB">Teen Audiobook</option>
+        <option value="YABIO">Teen Biography</option>
+        <option value="YADAD">Teen Digital Audio Device</option>
+        <option value="YADVD">Teen DVD</option>
+        <option value="YAF">Teen Fiction</option>
+        <option value="YAGRAPHIC">Teen Graphic Novel</option>
+        <option value="YACDM">Teen Music CD</option>
+        <option value="YANF">Teen Nonfiction</option>
+        <option value="YAPER">Teen Periodicals</option>
+        <option value="TEST">Test Prep</option>
+        <option value="UNKNOWN">Unknown</option>
+        <option value="VID">Video Cassette</option>
+        <option value="GAME">Video Games</option>
+        <option value="WEST">Western</option>
+    </select>
+    <button id="exportButton" class="btn btn-primary">Export All Problem Items</button>
+    <div id="page-wrapper" width="100%">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-lg-12">
+                    <table id="inventory" class="table table-bordered table-hover table-striped">
+                        <thead>
+                            <tr>
+                                <td>
+                                    Title
+                                </td>
+                                <td>
+                                    Barcode
+                                </td>
+                                <td>
+                                    Call Number
+                                </td>
+                                <td>
+                                    Accession
+                                </td>
+                                <td>
+                                    Last Seen
+                                </td>
+                                <td>
+                                    Last Borrowed
+                                </td>
+                                <td>
+                                    Issues
+                                </td>
+                                <td>
+                                    Renewals
+                                </td>
+                                <td>
+                                    NotForLoan
+                                </td>
+                                <td>
+                                    CCode
+                                </td>
+                                <td>
+                                    Hold
+                                </td>
+                                <td>
+                                    Lost
+                                </td>
+                                <td>
+                                    CKO
+                                </td>
+                                <td>
+                                    Transit
+                                </td>
+                            </tr>
+                        </thead>
+                        <tbody id="bookTable">
+
+                        </tbody>
+                </div>
+            </div>
+        </div>
+    </div>
+    </table>
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js" integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8="
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+        crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.datatables.net/1.10.18/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.18/js/dataTables.bootstrap4.min.js"></script>
+    <script>
+        var table;
+        $(document).ready(function () {
+            $('#branchSelectModal').modal('show');
+        });
+
+        $('#selectButton').click(function () {
+            $("#branchSelectModal").modal('hide');
+            $.post('http://www.bovinitydivinity.com', { op: 'getReport', branch: $("#branch").val(), ccode: 'FIC' }, function (data) {
+                data = JSON.parse(data);
+                for (i = 0; i < data.length; i++) {
+                    $("#bookTable").append("<tr class='dataRow'><td>" + data[i][0] + "</td><td>" + data[i][1] + "</td><td>" + data[i][2] + "</td><td>" + data[i][3] + "</td><td>" + data[i][4] + "</td><td>" + data[i][5] + "</td><td>" + data[i][6] + "</td><td>" + data[i][7] + "</td><td>" + data[i][8] + "</td><td>" + data[i][9] + "</td><td>" + data[i][10] + "</td><td>" + data[i][11] + "</td><td>" + data[i][12] + "</td><td>" + data[i][13] + "</td></tr>");
+                }
+                table = $('#inventory').DataTable({
+                    aLengthMenu: [
+                        [-1],
+                        ["All"]
+                    ],
+                    iDisplayLength: -1
+                });
+                $("#inventory").DataTable().draw();
+                $('#inventory_length').append("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Show Only: (CCode) ");
+                $("#ccodeFilter").appendTo("#inventory_length");
+                $('#inventory_length').append("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;");
+                $("#exportButton").appendTo("#inventory_length");
+            }).fail(function (error) {
+                console.log(error);
+            });
+        });
+
+        $(document).on('click', ".dataRow", function () {
+            if ($(this).hasClass('odd') && !$(this).hasClass('problem')) {
+                $(this).css('background-color', 'rgb(240, 128, 128)');
+                $(this).addClass('problem');
+            }
+            else if ($(this).hasClass('even') && !$(this).hasClass('problem')) {
+                $(this).css('background-color', 'rgb(240, 128, 128)');
+                $(this).addClass('problem');
+            }
+            else if ($(this).hasClass('even') && $(this).hasClass('problem')) {
+                $(this).css('background-color', 'rgb(255, 255, 255)');
+                $(this).removeClass('problem');
+            }
+            else if ($(this).hasClass('odd') && $(this).hasClass('problem')) {
+                $(this).css('background-color', 'rgba(0,0,0,.05)');
+                $(this).removeClass('problem');
+            }
+        });
+
+        $(document).on('change', '#ccodeFilter', function () {            
+            $("#inventory").DataTable().clear();                        
+            $.post('http://www.bovinitydivinity.com', { op: 'getReport', branch: $("#branch").val(), ccode: $("#ccodeFilter").val() }, function (data) {
+                data = JSON.parse(data);
+                $('#inventory').DataTable().rows.add(data);
+                $("#inventory").DataTable().draw();
+            });
+        });
+
+        $("#exportButton").click(function () {
+            var recipient = prompt('Enter recipient email address', '')
+            var problemList = $(".problem");
+            var problemString = 'Title,Barcode,Call Number,Collection Code\n';
+            for (var i = 0; i < problemList.length; i++) {
+                problemString += $(problemList.eq(i)).closest('tr').children('td:first').text() + ',' + $(problemList.eq(i)).closest('tr').children('td:nth-child(2)').text() + ',' + $(problemList.eq(i)).closest('tr').children('td:nth-child(3)').text() + ',' + $(problemList.eq(i)).closest('tr').children('td:nth-child(10)').text() + '\n';
+                problemList.eq(i).removeClass('problem');
+                if (problemList.eq(i).hasClass('even'))
+                    problemList.eq(i).css('background-color', 'rgb(255, 255, 255)');
+                else
+                    problemList.eq(i).css('background-color', 'rgb(0,0,0,.05)');
+            }
+            console.log(problemString);
+            $.post('http://www.bovinitydivinity.com', { op: 'problemMail', recipient: recipient, problemString: problemString, branch: $("#branch").val(), collection: $('#ccodeFilter').val() });
+        })
+    </script>
+</body>

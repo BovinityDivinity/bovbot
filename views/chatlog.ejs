@@ -1,0 +1,237 @@
+<html>
+
+<head>
+    <% include html/include/headblock %>    
+    <link href='http://fonts.googleapis.com/css?family=Roboto' rel='stylesheet' type='text/css'>
+    <link href="http://www.bovinitydivinity.com/css/datepicker.min.css" rel="stylesheet">
+
+    <style>
+        #contentDiv {
+            overflow-y: scroll;
+            height: 60%;
+            font-family: 'roboto';
+            font-size: 13.3px;
+        }
+        .timestamp {
+            font-size: smaller;
+            color: #6E6779;
+        }
+        .chat {
+            color: #433f4a;
+        }
+    </style>
+
+    <body>
+        <div id="wrapper">
+            <!-- Navigation -->
+            <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+                <!-- Brand and toggle get grouped for better mobile display -->
+                <div class="navbar-header">
+                    <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-ex1-collapse">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                    <a class="navbar-brand" href="/">BovBot</a>
+                </div>
+                <!-- Top Menu Items -->
+                <ul class="nav navbar-right top-nav"></ul>
+            </nav>
+            <div id="page-wrapper">
+                <div class="container-fluid">
+                    <!-- Page Heading -->
+                    <h1 class="page-header" id="pageHeader">Chat Log - <%= channel %></h1>
+                    <div class="col-md-8" id="contentDiv">
+                    </div>
+                    <div class="col-md-4" id="controlDiv">
+                        <label for="channelSearch">Select a Channel</label>
+                        <div class="form-inline">
+                            <input class="form-control" type="text" id="channelSearch"></input>
+                            <button class="btn btn-primary" id="searchButton">Search!</button>
+                        </div>
+                        <br />
+                        <label for="viewerSearch">Search for a Viewer</label>
+                        <div class="form-inline">
+                            <input class="form-control" type="text" id="viewerSearch"></input>
+                            <button class="btn btn-primary" id="viewerButton">Search!</button>
+                        </div>
+                        <br />
+                        <label for="calender">View Logs by Date</label>
+                        <div class="input-group date" id="calendarDiv">
+                            <input type="text" class="form-control" id="calendar">
+                            <div class="input-group-addon">
+                                <span class="glyphicon glyphicon-th"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- /.container-fluid -->
+            </div>
+            <!-- /#page-wrapper -->
+            <% include html/include/sidebar %>
+        <!-- /#wrapper -->
+
+        <% include html/include/scriptblock %>
+        <script src="http://www.bovinitydivinity.com/js/datepicker.min.js"></script>
+
+        <script>
+            var lastMax = 0;
+            var channel = '<%= channel %>';
+            var viewer = '';
+            var badges = '';
+            var date = '';
+            var channelID = 0;
+            var badgeArray = {
+                'moderator/1': '<img src="http://chat-badges.s3.amazonaws.com/mod.png" title="Moderator"> ',
+                'premium/1': '<img src="https://static-cdn.jtvnw.net/badges/v1/a1dd5073-19c3-4911-8cb4-c464a7bc1510/1" title="Prime"> ',
+                'broadcaster/1': '<img src="http://chat-badges.s3.amazonaws.com/broadcaster.png" title="Broadcaster"> ',
+                'turbo/1': '<img src="http://chat-badges.s3.amazonaws.com/turbo.png" title="Turbo"> ',
+                'staff/1': '<img src="http://chat-badges.s3.amazonaws.com/staff.png" title="Staff"> ',
+                'admin/1': '<img src="http://chat-badges.s3.amazonaws.com/admin.png" title="Admin"> ',
+                'global_mod/1': '<img src="http://chat-badges.s3.amazonaws.com/globalmod.png" title="Global Mod"> ',
+                'subscriber/0': '',
+                'subscriber/1': '',
+                'subscriber/3': '',
+                'subscriber/6': '',
+                'subscriber/12': '',
+                'subscriber/24': '',
+                'bits/1': '<img src="https://static-cdn.jtvnw.net/badges/v1/73b5c3fb-24f9-4a82-a852-2f475b59411c/1" title="Cheer 1"> ',
+                'bits/100': '<img src="https://static-cdn.jtvnw.net/badges/v1/09d93036-e7ce-431c-9a9e-7044297133f2/1" title="Cheer 100"> ',
+                'bits/1000': '<img src="https://static-cdn.jtvnw.net/badges/v1/0d85a29e-79ad-4c63-a285-3acd2c66f2ba/1" title="Cheer 1&#44;000"> ',
+                'bits/5000': '<img src="https://static-cdn.jtvnw.net/badges/v1/57cd97fc-3e9e-4c6d-9d41-60147137234e/1" title="Cheer 5&#44;000"> ',
+                'bits/10000': '<img src="https://static-cdn.jtvnw.net/badges/v1/68af213b-a771-4124-b6e3-9bb6d98aa732/1" title="Cheer 10&#44;000"> ',
+                'bits/25000': '<img src="https://static-cdn.jtvnw.net/badges/v1/64ca5920-c663-4bd8-bfb1-751b4caea2dd/1" title="Cheer 25&#44;000"> ',
+                'bits/50000': '<img src="https://static-cdn.jtvnw.net/badges/v1/62310ba7-9916-4235-9eba-40110d67f85d/1" title="Cheer 50&#44;000> ',
+                'bits/75000': '<img src="https://static-cdn.jtvnw.net/badges/v1/ce491fa4-b24f-4f3b-b6ff-44b080202792/1" title="Cheer 75&#44;000> ',
+                'bits/100000': '<img src="https://static-cdn.jtvnw.net/badges/v1/96f0540f-aa63-49e1-a8b3-259ece3bd098/1" title="Cheer 100&#44;000> ',
+                'bits/200000': '<img src="https://static-cdn.jtvnw.net/badges/v1/4a0b90c4-e4ef-407f-84fe-36b14aebdbb6/1" title="Cheer 200&#44;000> ',
+                'bits/300000': '<img src="https://static-cdn.jtvnw.net/badges/v1/ac13372d-2e94-41d1-ae11-ecd677f69bb6/1" title="Cheer 300&#44;000> ',
+                'bits/400000': '<img src="https://static-cdn.jtvnw.net/badges/v1/a8f393af-76e6-4aa2-9dd0-7dcc1c34f036/1" title="Cheer 400&#44;000> ',
+                'bits/500000': '<img src="https://static-cdn.jtvnw.net/badges/v1/f6932b57-6a6e-4062-a770-dfbd9f4302e5/1" title="Cheer 500&#44;000> ',
+                'bits/600000': '<img src="https://static-cdn.jtvnw.net/badges/v1/4d908059-f91c-4aef-9acb-634434f4c32e/1" title="Cheer 600&#44;000> ',
+                'bits/700000': '<img src="https://static-cdn.jtvnw.net/badges/v1/a1d2a824-f216-4b9f-9642-3de8ed370957/1" title="Cheer 700&#44;000> ',
+                'bits/800000': '<img src="https://static-cdn.jtvnw.net/badges/v1/5ec2ee3e-5633-4c2a-8e77-77473fe409e6/1" title="Cheer 800&#44;000> ',
+                'bits/900000': '<img src="https://static-cdn.jtvnw.net/badges/v1/088c58c6-7c38-45ba-8f73-63ef24189b84/1" title="Cheer 900&#44;000> ',
+                'bits/1000000': '<img src="https://static-cdn.jtvnw.net/badges/v1/494d1c8e-c3b2-4d88-8528-baff57c9bd3f/1" title="Cheer 1&#44;000&#44;000> '
+            };
+            // Subscriber star: https://static-cdn.jtvnw.net/badges/v1/19dd8673-124d-4f44-830c-b0f4f9d78635/13
+
+            $(function () {
+                $("#channelSearch").val('');
+                $("#viewerSearch").val('');
+                getMore();
+                $('.date').datepicker({ container: '#calendarDiv', autoclose: true, format: 'yyyy-mm-dd' }).on('changeDate', function () {
+                    $("#contentDiv").html('');
+                    lastMax = 0;
+                    viewer = '';
+                    date = $("#calendar").val();
+                    getMore();
+                });
+            })
+
+            var clickHandler = function clickHandler() {
+                if ($(this).scrollTop() + $(this).innerHeight() >= $(this)[0].scrollHeight) {
+                    $('#contentDiv').off();
+                    getMore();
+                }
+            }
+
+            function handlerOn() {
+                $('#contentDiv').on('scroll', clickHandler);
+            }
+
+            function getMore() {
+                $('#contentDiv').off();
+                $.ajax({
+                    url: 'http://www.bovinitydivinity.com/api/chat/' + channel, data: {
+                        limit: 100, begin: lastMax, viewer: viewer, date: date
+                    }
+                }).success(function (data, status) {
+                    ajaxSuccess(data, status, handlerOn);
+                })
+            }
+
+            function ajaxSuccess(data, status, callback) {
+                if (status == 'nocontent') {
+                    return 0;
+                }
+                else {
+                    for (var i = 0; i < data.length; i++) {
+                        if (!data[i]['badges'] || data[i]['badges'] == 1)
+                            badges = '';
+                        else {
+                            badges = data[i]['badges'].split(',');
+                            for (var b = 0; b < badges.length; b++) {
+                                badges[b] = badges[b].replace(badges[b], badgeArray[badges[b]]);
+                            }
+                            badges = badges.join().replace(/,/g, '');
+                        }
+                        $('#contentDiv').append('<span class="timestamp">' + data[i]['timestamp'] + ' </span>' + badges + '<span style="color: ' + data[i]['color'] + '">' + data[i]['viewer'] + '</span>: <span class="chat">' + data[i]['text'] + '</span><br/>');
+                    }
+                    lastMax = data[data.length - 1]['id'];
+                }
+                callback();
+            }
+
+            $("#searchButton").click(function () {
+                $("#contentDiv").html('');
+                channel = $("#channelSearch").val();
+                lastMax = 0;
+                viewer = '';
+                date = '';
+                $.ajax({
+                    type: 'GET',
+                    url: 'https://api.twitch.tv/kraken/channels/' + channel,
+                    headers: {
+                        'Client-ID': '77x2bphxdfi9xsekjd2nw99k3xnexfp'
+                    },
+                    success: function (data) {      
+                        $.ajax({                            
+                            type: 'GET',
+                            url: 'https://badges.twitch.tv/v1/badges/channels/' + data['_id'] + '/display?language=en',
+                            headers: {
+                                'Client-ID': '77x2bphxdfi9xsekjd2nw99k3xnexfp'
+                            },
+                            success: function (data) {                                
+                                if (data['badge_sets']['subscriber']) {
+                                    if(data['badge_sets']['subscriber']['versions']['0']) 
+                                        badgeArray['subscriber/0'] = '<img src="' + data['badge_sets']['subscriber']['versions']['0']['image_url_1x'] + '" title="Subscriber"> ';
+                                    if(data['badge_sets']['subscriber']['versions']['1']) 
+                                        badgeArray['subscriber/1'] = '<img src="' + data['badge_sets']['subscriber']['versions']['1']['image_url_1x'] + '" title="Subscriber"> ';
+                                    if(data['badge_sets']['subscriber']['versions']['3']) 
+                                        badgeArray['subscriber/3'] = '<img src="' + data['badge_sets']['subscriber']['versions']['3']['image_url_1x'] + '" title="3-Month Subscriber"> ';
+                                    if(data['badge_sets']['subscriber']['versions']['6']) 
+                                        badgeArray['subscriber/6'] = '<img src="' + data['badge_sets']['subscriber']['versions']['6']['image_url_1x'] + '" title="6-Month Subscriber"> ';
+                                    if(data['badge_sets']['subscriber']['versions']['12']) 
+                                        badgeArray['subscriber/12'] = '<img src="' + data['badge_sets']['subscriber']['versions']['12']['image_url_1x'] + '" title="12-Month Subscriber"> ';
+                                    if(data['badge_sets']['subscriber']['versions']['24']) 
+                                        badgeArray['subscriber/24'] = '<img src="' + data['badge_sets']['subscriber']['versions']['24']['image_url_1x'] + '" title="24-Month Subscriber"> ';
+                                }
+                                else {
+                                    badgeArray['subscriber/0'] = '<img src="https://static-cdn.jtvnw.net/badges/v1/19dd8673-124d-4f44-830c-b0f4f9d78635/1" title="Subscriber"> ';
+                                    badgeArray['subscriber/1'] = '<img src="https://static-cdn.jtvnw.net/badges/v1/19dd8673-124d-4f44-830c-b0f4f9d78635/1" title="Subscriber"> ';
+                                    badgeArray['subscriber/3'] = '<img src="https://static-cdn.jtvnw.net/badges/v1/19dd8673-124d-4f44-830c-b0f4f9d78635/1" title="Subscriber"> ';
+                                    badgeArray['subscriber/6'] = '<img src="https://static-cdn.jtvnw.net/badges/v1/19dd8673-124d-4f44-830c-b0f4f9d78635/1" title="Subscriber"> ';
+                                    badgeArray['subscriber/12'] = '<img src="https://static-cdn.jtvnw.net/badges/v1/19dd8673-124d-4f44-830c-b0f4f9d78635/1" title="Subscriber"> ';
+                                    badgeArray['subscriber/24'] = '<img src="https://static-cdn.jtvnw.net/badges/v1/19dd8673-124d-4f44-830c-b0f4f9d78635/1" title="Subscriber"> ';
+                                }
+
+                                $("#pageHeader").text('Chat Log - ' + channel);
+                                getMore();
+                            }
+                        })
+                    }
+                })
+            });
+
+            $("#viewerButton").click(function () {
+                $("#contentDiv").html('');
+                viewer = $("#viewerSearch").val();
+                lastMax = 0;
+                date = '';
+                getMore();
+            });
+        </script>
+    </body>
+</html>

@@ -1,0 +1,46 @@
+<html>
+<body onLoad="fillBoxes()">
+<table>
+    <tr><td>Total number of Gold draws: <span id="tries">0</span></td></tr>
+    <tr><td>Total number of double gold results: <span id="doubles">0</span></td></tr>
+    <tr><td>Percentage of G/G results: <span id="results">0</span>%</td></tr>
+    <tr>
+        <td>
+            <img src="http://www.bovinitydivinity.com/images/box.png" onclick="pickBox(0)">
+        </td>   
+        <td>
+            <img src="http://www.bovinitydivinity.com/images/box.png" onclick="pickBox(1)">
+        </td>   
+        <td>
+            <img src="http://www.bovinitydivinity.com/images/box.png" onclick="pickBox(2)">
+        </td>
+    </tr>
+    <script>
+        var box = [];                                  
+        function fillBoxes() {             
+            var boxNums = [0,1,2];       
+            box[boxNums.splice(Math.floor(Math.random() * Math.floor(boxNums.length)), 1)] = ["Gold", "Silver"];                                              
+            box[boxNums.splice(Math.floor(Math.random() * Math.floor(boxNums.length)), 1)] = ["Gold", "Gold"];            
+            box[boxNums.splice(Math.floor(Math.random() * Math.floor(boxNums.length)), 1)] = ["Silver", "Silver"];
+            console.log(box);          
+        }
+        function pickBox(boxNum) {
+            whichBall = Math.round(Math.random());
+            console.log(whichBall);
+            otherBall = (whichBall == 1) ? 0:1;
+            if(box[boxNum][whichBall] == "Silver") {
+                alert("Nope, you got a Silver. Lets try again.");
+            }
+            else {
+                document.getElementById("tries").innerHTML = parseInt(document.getElementById("tries").innerHTML) + 1;
+                if(box[boxNum][whichBall] == box[boxNum][otherBall]) {
+                    document.getElementById("doubles").innerHTML = parseInt(document.getElementById("doubles").innerHTML) + 1;
+                }                
+                alert("You got a gold ball! The other ball in the box is: " + box[boxNum][otherBall]);
+            }  
+            document.getElementById("results").innerHTML = (parseInt(document.getElementById("doubles").innerHTML) / parseInt(document.getElementById("tries").innerHTML)) * 100;
+            fillBoxes();          
+        }
+    </script>
+</body>
+</html>

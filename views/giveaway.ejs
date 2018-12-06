@@ -1,1 +1,289 @@
-testing
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="BovBot Admin Site">
+    <meta name="author" content="Bovinity">
+    <title>BovBot Admin Site</title>
+    <!-- Bootstrap Core CSS -->
+    <link href="http://www.bovinitydivinity.com/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        #chatBox {
+            border: 1px solid grey;
+            height: 60%;
+            overflow-y: auto;
+            overflow-x: visible;
+        }        
+        #winnerChat {
+            border: 1px solid grey;
+            border-radius: 5px;
+            height: 60%;
+            width: 20%;            
+            overflow-y: auto;
+            min-width: 200px;
+            padding: 2px;
+        }
+        #winnerDisplay {
+            text-align: center;
+            width: 20%;
+            font-size: 28px;
+            font-weight: bold;
+            min-width: 200px;
+        }
+        #controls {
+            text-align: center;
+            margin: 0 auto;
+            margin-left: 5px;
+            position: absolute;
+        }
+        #output {
+            position: absolute;
+            margin-left: 200px;
+            height: 100%;
+            width: 100%;
+            min-width: 200px;
+        }
+        #giveawayButton {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+        #altControl {
+            position: absolute;
+            margin-left: 200px;
+            margin-top: 650px;
+            height: 100%;
+            width: 100%;
+            min-width: 200px;
+        }
+        #winnerList {
+            border-top: 1px solid black;
+        }
+        .btn {
+            padding: 1px;
+        }
+        body {
+            margin-top: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid"> 
+        <div id="controls">
+            <button id="giveawayButton" class="btn btn-primary">Do the Giveaway!</button><br />          
+            <button id="clearWinners" class="btn btn-danger">Clear the Winners List</button><br />
+            <b>Winners:</b>
+            <div id="winnerList"></div>
+        </div>        
+        <div id="output">
+            <div id="winnerDisplay">No Winner Yet!</div>                
+            <div id="winnerChat"></div>       
+        </div>
+        <div id="altControl">
+            <input type="text" id="firstLine"></input>
+            <input type="text" id="secondLine"></input>
+            <button id="sendMessage" class="btn btn-primary">Send Message</button><br />            
+        </div>
+    </div> 
+
+    <% include html/include/scriptblock %>
+        <script>
+            var winnerName = '';
+            var winnerArray = [];
+            var ws = new WebSocket('ws://irc-ws.chat.twitch.tv/');
+            var nick = 'justinfan463437';
+            var channel = 'binnietv';
+
+            ws.addEventListener('open', function open() {
+                ws.send('CAP REQ :twitch.tv/tags twitch.tv/commands twitch.tv/membership');
+                ws.send('NICK ' + nick);
+                ws.send('JOIN #' + channel);
+            });
+
+            ws.onmessage = function (event) {
+                if (event.data.lastIndexOf('PING', 0) === 0) {
+                    ws.send('PONG :tmi.twitch.tv');
+                    console.log('PONG Sent\r\n');
+                }
+                else if (event.data.indexOf('PRIVMSG') > -1) {
+                    var message = parseMessage(event.data);
+                    from = message['prefix'].substr(0, message['prefix'].indexOf('!'));
+                    text = message['params'][1];
+                    if (from == winnerName) {
+                        $("#winnerChat").append('<b>' + from + '</b>: ' + text + '<br />');   
+                        $("#winnerChat").scrollTop($("#winnerChat")[0].scrollHeight);                     
+                    }
+                    else {
+                        //$("#chatBox").append('<b>' + from + '</b>: ' + text + '<br />');
+                        //$("#chatBox").scrollTop($("#chatBox")[0].scrollHeight);
+                    }
+                }
+                else {
+                    // Raw data log for debugging
+                    //console.log(event.data);
+                }
+            }
+
+            function parseMessage(data) {
+                var message = {
+                    raw: data,
+                    tags: {},
+                    prefix: null,
+                    command: null,
+                    params: []
+                }
+
+                // position and nextspace are used by the parser as a reference.
+                var position = 0
+                var nextspace = 0
+
+                // The first thing we check for is IRCv3.2 message tags.
+                // http://ircv3.atheme.org/specification/message-tags-3.2   
+
+                try {
+                    if (data.charCodeAt(0) === 64) {
+                        var nextspace = data.indexOf(' ')
+
+                        if (nextspace === -1) {
+                            // Malformed IRC message.            
+                            return null
+                        }
+
+                        // Tags are split by a semi colon.
+                        var rawTags = data.slice(1, nextspace).split(';')
+
+                        for (var i = 0; i < rawTags.length; i++) {
+                            // Tags delimited by an equals sign are key=value tags.
+                            // If there's no equals, we assign the tag a value of true.
+                            var tag = rawTags[i]
+                            var pair = tag.split('=')
+                            message.tags[pair[0]] = pair[1] || true
+                        }
+
+                        position = nextspace + 1
+                    }
+                }
+                catch (err) {
+                    if (err)
+                        return null;
+                }
+
+
+                // Skip any trailing whitespace.
+                while (data.charCodeAt(position) === 32) {
+                    position++
+                }
+
+                // Extract the message's prefix if present. Prefixes are prepended
+                // with a colon.
+
+                if (data.charCodeAt(position) === 58) {
+                    nextspace = data.indexOf(' ', position)
+
+                    // If there's nothing after the prefix, deem this message to be
+                    // malformed.
+                    if (nextspace === -1) {
+                        // Malformed IRC message.
+                        return null
+                    }
+
+                    message.prefix = data.slice(position + 1, nextspace)
+                    position = nextspace + 1
+
+                    // Skip any trailing whitespace.
+                    while (data.charCodeAt(position) === 32) {
+                        position++
+                    }
+                }
+
+                nextspace = data.indexOf(' ', position)
+
+                // If there's no more whitespace left, extract everything from the
+                // current position to the end of the string as the command.
+                if (nextspace === -1) {
+                    if (data.length > position) {
+                        message.command = data.slice(position)
+                        return message
+                    }
+
+                    return null
+                }
+
+                // Else, the command is the current position up to the next space. After
+                // that, we expect some parameters.
+                message.command = data.slice(position, nextspace)
+
+                position = nextspace + 1
+
+                // Skip any trailing whitespace.
+                while (data.charCodeAt(position) === 32) {
+                    position++
+                }
+
+                while (position < data.length) {
+                    nextspace = data.indexOf(' ', position)
+
+                    // If the character is a colon, we've got a trailing parameter.
+                    // At this point, there are no extra params, so we push everything
+                    // from after the colon to the end of the string, to the params array
+                    // and break out of the loop.
+                    if (data.charCodeAt(position) === 58) {
+                        message.params.push(data.slice(position + 1))
+                        break
+                    }
+
+                    // If we still have some whitespace...
+                    if (nextspace !== -1) {
+                        // Push whatever's between the current position and the next
+                        // space to the params array.
+                        message.params.push(data.slice(position, nextspace))
+                        position = nextspace + 1
+
+                        // Skip any trailing whitespace and continue looping.
+                        while (data.charCodeAt(position) === 32) {
+                            position++
+                        }
+
+                        continue
+                    }
+
+                    // If we don't have any more whitespace and the param isn't trailing,
+                    // push everything remaining to the params array.
+                    if (nextspace === -1) {
+                        message.params.push(data.slice(position))
+                        break
+                    }
+                }
+                return message
+            }
+
+            $("#giveawayButton").click(function () {
+                $.post("http://www.bovinitydivinity.com", { op: 'giveaway', "winners[]": JSON.stringify(winnerArray)}, function (data, status) {
+                    if(status == 'nocontent') {
+                        alert('No eligible winners!');
+                        return 0;
+                    }                        
+                    $("#winnerChat").text('');
+                    winnerName = data.winner;
+                    winnerArray.push(winnerName);
+                    $("#winnerDisplay").text(data.winner);
+                    $("#winnerList").append(data.winner + "<br />");
+                });
+            });
+
+            $("#clearWinners").click(function () {
+                $("#winnerList").text('');
+                $("#winnerDisplay").text('No Winner Yet!');
+                winnerArray = [];
+            });
+
+            $("#sendMessage").click(function () {
+                firstLine = $("#firstLine").val();
+                secondLine = $("#secondLine").val();
+                $.post("http://www.bovinitydivinity.com", { op: 'message', firstLine: firstLine, secondLine: secondLine, function (data, status) {
+                        alert(firstLine + ' ' + secondLine);
+                }           
+                });
+            });
+        </script>
+</body>
