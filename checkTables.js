@@ -17,7 +17,7 @@ module.exports = function checkTables(channel, connection) {
         if (err)
             throw err;
         if (!rows[0]) {
-            connection.query('CREATE TABLE ' + channel + '_chatlog (id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT, timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, viewer VARCHAR(50), text VARCHAR(500))', function (err, rows, fields) {
+            connection.query('CREATE TABLE ' + channel + '_chatlog (id INT UNSIGNED PRIMARY KEY AUTO_INCREMENT, timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP, viewer VARCHAR(50), text VARCHAR(500), color VARCHAR(20), badges VARCHAR(50))', function (err, rows, fields) {
                 if (err)
                     throw err;
                 console.log('Created new Chatlog table: ' + channel);
@@ -32,6 +32,16 @@ module.exports = function checkTables(channel, connection) {
                 if (err)
                     throw err;
                 console.log('Created new Viewers table: ' + channel);
+            });
+        }
+    });
+    connection.query('SELECT name FROM channels WHERE name = "' + channel + '"', function (err, rows, fields) {
+        if (err)
+            throw err;
+        if(!rows[0]) {
+            connection.query('INSERT INTO channels (name) VALUES ("' + channel + '")', function (err, rows, fields) {
+                if (err)
+                    throw err;
             });
         }
     });
